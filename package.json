@@ -1,0 +1,22 @@
+{
+  "name": "boucle.dev",
+  "version": "1.0.0",
+  "description": "Landing page for boucle.dev — zero-code autonomous product builder",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://framagit.org/up/boucle.dev.git"
+  },
+  "keywords": ["boucle", "loop-engineering", "autonomous", "ai-agent", "ci-cd"],
+  "author": "ankaboot",
+  "license": "AGPL-3.0",
+  "dependencies": {
+    "astro": "^5.0.0"
+  }
+}
