@@ -25,17 +25,18 @@ is child's play. The tone is futuristic but accessible, not elitist.
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--bg-primary` | `#0a0a12` | Deep space black (base background) |
+| `--surface-base` | `#0a0a12` | Deep space black (base background) |
 | `--bg-secondary` | `#12121f` | Panel/card background |
-| `--bg-tertiary` | `#1a1a2e` | Elevated surface |
-| `--accent-gold` | `#f5c842` | Boucle d'or gold (primary accent — CTA, highlights) |
+| `--surface-raised` | `#1a1a2e` | Elevated surface (code blocks, tooltips) |
+| `--accent` | `#f5c842` | Boucle d'or gold — primary accent (CTA, highlights, logo) |
 | `--accent-gold-dim` | `#c9a233` | Hover/active state for gold |
 | `--accent-violet` | `#7b2ff7` | Afro-futurist violet (secondary accent — gradients, glow) |
 | `--accent-cyan` | `#00e5ff` | Futuristic cyan (tertiary accent — links, tech details) |
 | `--text-primary` | `#f0f0f5` | Off-white (body text) |
 | `--text-secondary` | `#a0a0b8` | Muted text (descriptions, meta) |
 | `--text-gold` | `#f5c842` | Gold text (emphasis, logo) |
-| `--border-subtle` | `rgba(245, 200, 66, 0.15)` | Subtle gold border (cards, dividers) |
+| `--border` | `rgba(245, 200, 66, 0.15)` | Subtle gold border (cards, dividers) |
+| `--destructive` | `#ff4d5e` | Error/destructive states (form validation, alerts) |
 | `--glow-gold` | `rgba(245, 200, 66, 0.3)` | Gold glow (hover, focus) |
 | `--glow-violet` | `rgba(123, 47, 247, 0.25)` | Violet glow (ambient, gradients) |
 
@@ -51,10 +52,13 @@ is child's play. The tone is futuristic but accessible, not elitist.
 - Body: 400 weight, 1.6 line-height.
 - Sizes: fluid with `clamp()` — hero `clamp(2.5rem, 6vw, 4.5rem)`, sections `clamp(1.8rem, 4vw, 3rem)`.
 
-### Spacing
+### Spacing & layout
 
-8px base grid. Sections: `padding: clamp(3rem, 8vw, 6rem) 1.5rem`.
-Container max-width: `1100px`, centered.
+- 8px base grid. Sections: `padding: clamp(3rem, 8vw, 6rem) 1.5rem`.
+- Container max-width: `1100px`, centered.
+- Single page, vertical scroll, mobile-first. Sections: Hero → How it works → Why boucle → Quick start → Footer. No navigation bar.
+- Responsive breakpoints: mobile (under 768px), tablet (768–1024px), desktop (over 1024px).
+- Grid: CSS Grid for multi-column layouts, Flexbox for component internals.
 
 ### Radius
 
@@ -62,14 +66,16 @@ Container max-width: `1100px`, centered.
 - Pills on CTAs: `999px` (buttons — approachable contrast).
 - No `border-radius` between these two extremes.
 
-### Motion
+## 3. Motion
 
 - Subtle ambient glow pulse on the hero (violet/gold, 4s ease-in-out infinite).
 - Fade-in-up on scroll reveal (`opacity 0→1`, `translateY(20px→0)`, 0.6s ease).
 - No parallax, no spin, no bounce — calm, not flashy.
 - `prefers-reduced-motion: reduce` → all animations disabled.
 
-## 3. Logo
+## 4. Components
+
+### Logo
 
 The boucle logo is **a silhouette of a girl's head with afro hair in gold/blond** —
 an abstract, geometric icon (not a realistic portrait). The afro is rendered as
@@ -82,11 +88,9 @@ geometric, abstract, not a photo or raster image. The afro hair forms a full
 circle around the head silhouette, evoking both a boucle (loop) and natural
 hair.
 
-## 4. Components
-
 ### Hero
 
-- Full-viewport height, dark gradient background (`--bg-primary` → `--bg-secondary`).
+- Full-viewport height, dark gradient background (`--surface-base` → `--bg-secondary`).
 - Ambient violet/gold glow blobs (CSS `radial-gradient`, `filter: blur(80px)`).
 - Logo + "boucle" wordmark (gold) centered or left-aligned.
 - Headline: "Construire un produit est un jeu d'enfant" — display font, fluid size.
@@ -110,7 +114,7 @@ hair.
 ### Quick start
 
 - Minimal: a 3-step list (add submodule → run setup → create issue).
-- Code snippets in `--font-mono` on `--bg-tertiary` background.
+- Code snippets in `--font-mono` on `--surface-raised` background.
 - "Voir la doc" link to the README.
 
 ### Footer
@@ -120,7 +124,7 @@ hair.
 - Links: GitHub, License (AGPL-3.0), Docs.
 - No heavy footer — the message is subtle, not a banner.
 
-## 5. Content guidelines
+## 5. Content & tone
 
 - **Language:** French for the main marketing copy (headline, subheadline, CTAs).
   Technical terms and code stay in English. Section titles can be French or English.
@@ -129,13 +133,21 @@ hair.
 - **No stock photos.** The design is geometric, typographic, CSS-driven. The only
   visual element is the logo (SVG) and geometric shapes/gradients.
 - **No emoji in headlines** (except the ➰ loop mark in the logo area).
-- **Accessibility:** WCAG 2.1 AA. Gold (#f5c842) on dark meets contrast. All
-  interactive elements keyboard-accessible. `alt` text on the logo SVG.
+- **Accessibility:** WCAG 2.1 AA — text contrast ≥ 4.5:1, large text and UI
+  components ≥ 3:1. Gold (`#f5c842`) on dark meets both. All interactive
+  elements keyboard-accessible. `alt` text on the logo SVG.
 
-## 6. Layout
+## 6. Iconography
 
-- Single page, vertical scroll, mobile-first.
-- Sections: Hero → How it works → Why boucle → Quick start → Footer.
-- No navigation bar (single page, no need).
-- Responsive breakpoints: mobile (< 768px), tablet (768-1024px), desktop (> 1024px).
-- Grid: CSS Grid for multi-column layouts, Flexbox for component internals.
+- All icons are geometric inline SVGs (stroke-based, 1.5px, `currentColor`),
+  matching the logo's abstract geometric style.
+- Icon set: loop/issue, spec, implement, deploy, plus small meta icons (docs, GitHub, lock).
+- Icons use `--accent-gold` or `--text-secondary`; violet is reserved for ambient
+  glow, never on icons themselves.
+
+## 7. Visual foundations
+
+- Dark theme only — no light variant. `--surface-base` is the base, `--accent` drives attention.
+- Single-accent discipline: gold leads (CTA, logo, highlights), violet/cyan support only.
+- Sharp corners (`0px`) on primary surfaces; `999px` pills only on CTAs.
+- Layout follows the "Spacing & layout" grid; visual density is generous (whitespace ≥ 1.5rem between blocks).
