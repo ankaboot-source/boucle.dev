@@ -15,9 +15,11 @@ overnight.
 is child's play. The tone is futuristic but accessible, not elitist.
 
 **Key messages (in priority order):**
-1. No UI needed — boucle lives in your forge (GitLab/GitHub), no new app to learn.
-2. Autonomous loop — issue → spec → implement → review → deploy → verify, asynchronously.
-3. Made in Africa, for the world — discreet footer, not a banner.
+1. Lives in your forge — boucle lives in your forge (GitHub/GitLab), no external tool, no separate dashboard.
+2. Deterministic and reliable — deterministic, therefore reliable; you intervene at the decision points.
+3. Works while you sleep — the agent works overnight for you, you intervene only when it matters.
+4. No UI, No CLI — no interface to learn, no command line to master; you interact through your forge.
+5. Self-healing, self-learning loop — a loop that learns from its mistakes, self-updates, and adapts to your codebase.
 
 ## 2. Design tokens
 
@@ -94,7 +96,7 @@ hair.
 - Ambient violet/gold glow blobs (CSS `radial-gradient`, `filter: blur(80px)`).
 - Logo + "boucle" wordmark (gold) centered or left-aligned.
 - Headline: "Construire un produit est un jeu d'enfant" — display font, fluid size.
-- Subheadline: "De un ticket dans votre forge à une feature en production. Sans UI, sans agent qui tourne sur votre machine."
+- Subheadline: "De un ticket dans votre forge à une feature en production. boucle travaille pendant que vous dormez, vous intervenez aux points de décision."
 - CTA: "Commencer" (gold pill, links to quick start) + "Comment ça marche" (ghost link).
 - A subtle loop emoji ➰ or the logo mark as a visual anchor.
 
@@ -107,8 +109,13 @@ hair.
 
 ### Why boucle
 
-- 3-4 pain-point → solution cards, dark panels with subtle gold border.
-- "Pas besoin d'UI" as the first card — this is the core differentiator.
+- 5 promise cards, dark panels with subtle gold border.
+- First card ("Lives in your forge") is the featured/prominent card — it spans
+  the full width of the card grid and gets a distinct gold treatment (gold
+  border + glow) to mark it as the key differentiator.
+- Remaining 4 cards ("Deterministic and reliable", "Works while you sleep",
+  "No UI, No CLI", "Self-healing, self-learning loop") display in a 2×2 grid on
+  tablet/desktop, stacked on mobile.
 - Each card: pain point (muted text) → arrow → boucle's answer (gold/violet accent).
 
 ### Quick start
