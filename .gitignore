@@ -4,6 +4,9 @@
 # dependencies
 node_modules/
 
+# astro build cache
+.astro/
+
 # astro build output (configured via outDir in astro.config.mjs)
 # NOTE: GitLab Pages expects the output in public/, so we do NOT
 # gitignore public/ — the pages job publishes it as an artifact.
