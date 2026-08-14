@@ -355,6 +355,44 @@ const description =
         color: var(--text-secondary);
       }
 
+      /* ============ LIVES IN YOUR FORGE ============ */
+      .forge {
+        background: var(--surface-base);
+      }
+      .forge-message {
+        text-align: center;
+        color: var(--text-primary);
+        font-family: var(--font-display);
+        font-size: clamp(1.1rem, 2.4vw, 1.4rem);
+        font-weight: 600;
+        max-width: 640px;
+        margin: 0 auto 3rem;
+      }
+      .forge-logos {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3rem;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .forge-logos a {
+        display: inline-flex;
+        align-items: center;
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: color 0.2s ease;
+      }
+      .forge-logos a:hover {
+        color: var(--accent);
+      }
+      .forge-logos svg {
+        width: clamp(120px, 20vw, 180px);
+        height: auto;
+        display: block;
+      }
+
       /* ============ WHY BOUCLE ============ */
       .why {
         background: var(--bg-secondary);
@@ -515,6 +553,11 @@ const description =
       @media (min-width: 768px) {
         .cards {
           grid-template-columns: repeat(2, 1fr);
+        }
+        .forge-logos {
+          flex-direction: row;
+          justify-content: center;
+          gap: 3rem;
         }
       }
       @media (min-width: 1024px) {
@@ -689,6 +732,39 @@ const description =
         </div>
       </section>
 
+      <!-- ============ LIVES IN YOUR FORGE ============ -->
+      <section class="forge" id="lives-in-your-forge" aria-labelledby="forge-title">
+        <div class="container">
+          <h2 id="forge-title">Lives in your forge</h2>
+          <p class="forge-message">
+            boucle lives in your forge. GitHub, GitLab. No external tool, no dashboard.
+          </p>
+
+          <ul class="forge-logos">
+            <li>
+              <a href="https://github.com">
+                <!-- GitHub mark — official octocat silhouette, single-color (white on dark). -->
+                <svg viewBox="0 0 24 24" role="img" aria-label="GitHub logo" fill="currentColor">
+                  <path
+                    d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.04-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.39 1.24-3.23-.13-.3-.54-1.53.11-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3.01-.41c1.02 0 2.05.14 3.01.41 2.29-1.55 3.3-1.23 3.3-1.23.65 1.65.24 2.88.12 3.18.77.84 1.24 1.92 1.24 3.23 0 4.62-2.81 5.64-5.49 5.94.43.37.81 1.1.81 2.22 0 1.61-.02 2.9-.02 3.3 0 .32.22.7.83.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5Z"
+                  />
+                </svg>
+              </a>
+            </li>
+            <li>
+              <a href="https://gitlab.com">
+                <!-- GitLab tanuki — official logo, single-color (white on dark). -->
+                <svg viewBox="0 0 24 24" role="img" aria-label="GitLab logo" fill="currentColor">
+                  <path
+                    d="m23.6004 9.5927-.0337-.0862L20.3.9814a.851.851 0 0 0-.3362-.405.8748.8748 0 0 0-.9997.0539.8748.8748 0 0 0-.29.4399l-2.2055 6.748H7.5375l-2.2057-6.748a.8573.8573 0 0 0-.29-.4412.8748.8748 0 0 0-.9997-.0537.8585.8585 0 0 0-.3362.4049L.4332 9.5015l-.0325.0862a6.0657 6.0657 0 0 0 2.0119 7.0105l.0113.0087.03.0213 4.976 3.7264 2.462 1.8633a1.0287 1.0287 0 0 0 1.2197 0l2.462-1.8633 4.976-3.7264.0305-.0213.0113-.0087a6.0657 6.0657 0 0 0 2.0114-7.0086z"
+                  />
+                </svg>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+
       <!-- ============ WHY BOUCLE ============ -->
       <section class="why" id="why-boucle" aria-labelledby="why-title">
         <div class="container">
@@ -703,6 +779,7 @@ const description =
               <p class="pain">A new tool to learn, a dashboard to babysit.</p>
               <p class="arrow">→</p>
               <p class="answer">boucle lives in your forge (GitHub/GitLab). No external tool, no separate dashboard. Everything happens where you already work.</p>
+              <p class="answer"><a href="#lives-in-your-forge">See where boucle lives →</a></p>
             </div>
 
             <div class="card">
