@@ -322,10 +322,14 @@ const description =
 
       .step {
         position: relative;
+        padding-left: 0;
+        max-width: 100%;
+      }
+
+      .step-head {
         display: flex;
         gap: 1.25rem;
         align-items: flex-start;
-        padding-left: 0;
       }
 
       .step-icon {
@@ -353,6 +357,195 @@ const description =
       .step-body p {
         margin: 0;
         color: var(--text-secondary);
+      }
+
+      /* Forge mini-mockup — pure HTML/CSS, no external images.
+         Text tokens (primary/secondary) on bg-secondary/raised keep
+         WCAG 2.1 AA contrast (>= 4.5:1). Decorative internals are
+         aria-hidden; the mock carries a role="img" aria-label. */
+      .forge-mock {
+        margin-top: 1.25rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 0;
+        overflow: hidden;
+        text-align: left;
+        font-size: 0.8rem;
+        line-height: 1.4;
+      }
+      .mock-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 0.75rem;
+        background: var(--surface-raised);
+        border-bottom: 1px solid var(--border);
+      }
+      .mock-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--border);
+      }
+      .mock-url {
+        color: var(--text-secondary);
+        font-size: 0.7rem;
+        margin-left: 0.25rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .mock-body {
+        padding: 0.85rem 0.9rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        color: var(--text-secondary);
+      }
+      .mock-title {
+        margin: 0;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .mock-desc,
+      .mock-meta,
+      .mock-comment,
+      .mock-hint,
+      .mock-pr-title {
+        margin: 0;
+      }
+      .mock-meta {
+        font-size: 0.72rem;
+      }
+      .mock-badge {
+        display: inline-block;
+        width: fit-content;
+        padding: 0.15rem 0.55rem;
+        margin: 0;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        border-radius: 999px;
+      }
+      .mock-badge--issue {
+        color: var(--surface-base);
+        background: var(--accent);
+      }
+      .mock-badge--live {
+        color: var(--text-primary);
+        background: rgba(0, 229, 255, 0.18);
+        border: 1px solid rgba(0, 229, 255, 0.4);
+      }
+      .mock-avatar {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        background: var(--text-secondary);
+        vertical-align: middle;
+        margin-right: 0.35rem;
+      }
+      .mock-avatar--gold {
+        background: var(--accent);
+      }
+      .mock-author {
+        margin: 0;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .mock-preview {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        padding: 0.6rem;
+        background: var(--surface-base);
+        border: 1px solid var(--border);
+      }
+      .mock-preview-line {
+        display: block;
+        height: 7px;
+        background: var(--border);
+      }
+      .mock-preview-line--short {
+        width: 60%;
+      }
+      .mock-preview-block {
+        display: block;
+        height: 42px;
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+      }
+      .mock-reactions {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .mock-reaction {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.15rem 0.55rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+      }
+      .mock-reaction--active {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .mock-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .mock-spinner {
+        width: 12px;
+        height: 12px;
+        border: 2px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 999px;
+        animation: mock-spin 0.9s linear infinite;
+      }
+      @keyframes mock-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .mock-pulse {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: var(--accent);
+        animation: mock-pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes mock-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+      .mock-verdict {
+        display: inline-block;
+        width: fit-content;
+        padding: 0.2rem 0.7rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        border-radius: 999px;
+      }
+      .mock-verdict--pass {
+        color: var(--surface-base);
+        background: var(--accent);
+      }
+      .mock-verdict--merged {
+        color: var(--surface-base);
+        background: var(--accent);
       }
 
       /* ============ LIVES IN YOUR FORGE ============ */
@@ -559,13 +752,21 @@ const description =
           justify-content: center;
           gap: 3rem;
         }
+        .steps {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 2.5rem 2rem;
+        }
+        /* Two-column layout: dotted connector runs vertically down each column. */
+        .steps::before {
+          left: 28px;
+        }
       }
       @media (min-width: 1024px) {
         .steps {
-          grid-template-columns: repeat(4, 1fr);
-          gap: 1.5rem;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 3rem 1.5rem;
         }
-        /* Horizontal dotted connector across the 4 steps */
+        /* Horizontal dotted connector across the 3-column grid (two rows). */
         .steps::before {
           top: 28px;
           bottom: auto;
@@ -582,8 +783,12 @@ const description =
           text-align: center;
           padding: 0;
         }
+        .step-head {
+          flex-direction: column;
+          align-items: center;
+        }
         .step-body p {
-          max-width: 220px;
+          max-width: 260px;
           margin: 0 auto;
         }
         .cards {
@@ -675,57 +880,176 @@ const description =
         <div class="container">
           <h2 id="how-title">How it works</h2>
           <p class="section-sub">
-            Four steps, one loop. You stay in your forge, boucle does the rest.
+            Six steps, one loop. You stay in your forge, boucle does the rest.
           </p>
 
           <div class="steps">
+            <!-- 1. Drop the idea in an issue -->
             <div class="step">
-              <div class="step-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v5l3 3" />
-                </svg>
+              <div class="step-head">
+                <div class="step-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 3" />
+                  </svg>
+                </div>
+                <div class="step-body">
+                  <h3>Je droppe mon idée dans une issue</h3>
+                  <p>Je crée une issue dans ma forge, avec un titre et une description. C'est juste un ticket normal.</p>
+                </div>
               </div>
-              <div class="step-body">
-                <h3>Issue</h3>
-                <p>You create a ticket in your forge.</p>
+              <div class="forge-mock" role="img" aria-label="Mockup de la forge : une issue ouverte avec un titre et une description en attente.">
+                <div class="mock-bar" aria-hidden="true">
+                  <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+                  <span class="mock-url">github.com/mon-repo/issues</span>
+                </div>
+                <div class="mock-body" aria-hidden="true">
+                  <p class="mock-badge mock-badge--issue">Issue</p>
+                  <p class="mock-title">Ajouter un mode sombre</p>
+                  <p class="mock-desc">Quand je passe le site en sombre, les couleurs ne collent pas au thème.</p>
+                  <p class="mock-meta"><span class="mock-avatar"></span> moi · ouvert</p>
+                </div>
               </div>
             </div>
 
+            <!-- 2. A proposal with an image -->
             <div class="step">
-              <div class="step-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M4 6h16M4 12h16M4 18h10" />
-                </svg>
+              <div class="step-head">
+                <div class="step-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M4 6h16M4 12h16M4 18h10" />
+                  </svg>
+                </div>
+                <div class="step-body">
+                  <h3>Je reçois une proposition avec une image</h3>
+                  <p>boucle analyse, écrit un spec et poste un commentaire sur l'issue avec un aperçu. Je vois exactement ce que ça va donner.</p>
+                </div>
               </div>
-              <div class="step-body">
-                <h3>Spec</h3>
-                <p>boucle analyzes and writes the spec. You approve it.</p>
+              <div class="forge-mock" role="img" aria-label="Mockup de la forge : un commentaire de boucle avec un spec et un aperçu de la page proposée.">
+                <div class="mock-bar" aria-hidden="true">
+                  <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+                  <span class="mock-url">github.com/mon-repo/issues/12</span>
+                </div>
+                <div class="mock-body" aria-hidden="true">
+                  <p class="mock-author"><span class="mock-avatar mock-avatar--gold"></span> boucle-bot</p>
+                  <p class="mock-comment">Voici le spec et un aperçu de ce que ça donnera.</p>
+                  <div class="mock-preview">
+                    <span class="mock-preview-line"></span>
+                    <span class="mock-preview-line mock-preview-line--short"></span>
+                    <span class="mock-preview-block"></span>
+                  </div>
+                </div>
               </div>
             </div>
 
+            <!-- 3. Validate with a thumb -->
             <div class="step">
-              <div class="step-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M12 3v12M7 8l5-5 5 5" />
-                  <path d="M4 21h16" />
-                </svg>
+              <div class="step-head">
+                <div class="step-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M7 10v10M7 10l3-6a2 2 0 0 1 2-1h1.5A1.5 1.5 0 0 1 15 4.5V9h4a2 2 0 0 1 2 2v1a6 6 0 0 1-1 3.3L18 20H8" />
+                  </svg>
+                </div>
+                <div class="step-body">
+                  <h3>Je valide avec un pouce</h3>
+                  <p>Je réagis avec un pouce vers le haut sur le commentaire de spec. Pas de formulaire, pas de CLI. Juste un emoji.</p>
+                </div>
               </div>
-              <div class="step-body">
-                <h3>Implement</h3>
-                <p>boucle implements and deploys a preview.</p>
+              <div class="forge-mock" role="img" aria-label="Mockup de la forge : la réaction pouce vers le haut activée sur le commentaire de spec.">
+                <div class="mock-bar" aria-hidden="true">
+                  <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+                  <span class="mock-url">github.com/mon-repo/issues/12</span>
+                </div>
+                <div class="mock-body" aria-hidden="true">
+                  <div class="mock-reactions">
+                    <span class="mock-reaction mock-reaction--active">👍 1</span>
+                    <span class="mock-reaction">👀 1</span>
+                  </div>
+                  <p class="mock-hint">Réaction ajoutée : boucle démarre.</p>
+                </div>
               </div>
             </div>
 
+            <!-- 4. It works -->
             <div class="step">
-              <div class="step-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M4 12l5 5L20 6" />
-                </svg>
+              <div class="step-head">
+                <div class="step-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1" />
+                  </svg>
+                </div>
+                <div class="step-body">
+                  <h3>Ça bosse</h3>
+                  <p>boucle implémente, build, déploie un aperçu. Je n'ai rien à faire pendant ce temps. L'agent travaille.</p>
+                </div>
               </div>
-              <div class="step-body">
-                <h3>Deploy</h3>
-                <p>You approve the MR, the feature ships to production.</p>
+              <div class="forge-mock" role="img" aria-label="Mockup de la forge : le statut de travail actif de l'agent boucle avec une animation.">
+                <div class="mock-bar" aria-hidden="true">
+                  <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+                  <span class="mock-url">github.com/mon-repo/actions</span>
+                </div>
+                <div class="mock-body" aria-hidden="true">
+                  <p class="mock-status">
+                    <span class="mock-spinner" aria-hidden="true"></span>
+                    <span class="mock-pulse"></span>
+                    En cours — l'agent travaille
+                  </p>
+                  <p class="mock-meta">build · preview · vérification</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. It is verified -->
+            <div class="step">
+              <div class="step-head">
+                <div class="step-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M4 12l5 5L20 6" />
+                  </svg>
+                </div>
+                <div class="step-body">
+                  <h3>C'est vérifié</h3>
+                  <p>Le reviewer vérifie le rendu, poste un verdict (PASS/FAIL) en commentaire sur la PR. Si FAIL, ça boucle. Si PASS, la PR est prête.</p>
+                </div>
+              </div>
+              <div class="forge-mock" role="img" aria-label="Mockup de la forge : une pull request avec un verdict PASS en commentaire.">
+                <div class="mock-bar" aria-hidden="true">
+                  <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+                  <span class="mock-url">github.com/mon-repo/pull/25</span>
+                </div>
+                <div class="mock-body" aria-hidden="true">
+                  <p class="mock-pr-title">Pull request — mode sombre</p>
+                  <div class="mock-verdict mock-verdict--pass">PASS</div>
+                  <p class="mock-comment">Vérifié : le rendu correspond au spec. Prêt à fusionner.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6. Validate, it is live -->
+            <div class="step">
+              <div class="step-head">
+                <div class="step-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 3v12M7 8l5-5 5 5" />
+                    <path d="M4 21h16" />
+                  </svg>
+                </div>
+                <div class="step-body">
+                  <h3>Je valide, c'est live</h3>
+                  <p>J'approuve la PR (ou boucle merge selon la config). La feature ship en production. C'est live.</p>
+                </div>
+              </div>
+              <div class="forge-mock" role="img" aria-label="Mockup de la forge : une pull request fusionnée avec un badge live.">
+                <div class="mock-bar" aria-hidden="true">
+                  <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+                  <span class="mock-url">github.com/mon-repo/pull/25</span>
+                </div>
+                <div class="mock-body" aria-hidden="true">
+                  <p class="mock-pr-title">Pull request — mode sombre</p>
+                  <div class="mock-verdict mock-verdict--merged">MERGED</div>
+                  <p class="mock-badge mock-badge--live">● Live en production</p>
+                </div>
               </div>
             </div>
           </div>
