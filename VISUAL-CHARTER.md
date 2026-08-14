@@ -95,6 +95,29 @@ readability or WCAG 2.1 AA contrast.
 - No parallax, no spin, no bounce — calm, not flashy.
 - `prefers-reduced-motion: reduce` → all animations disabled.
 
+### Validation flow ("How it works")
+
+The validation cycle is visualized as four badges, one per step, sequenced
+with CSS `@keyframes` (no JavaScript). All badges are decorative only and
+`aria-hidden`. Durations are 300–800ms with `ease-out`; the ambient loop may
+run up to 3s. `prefers-reduced-motion: reduce` disables every badge animation
+and the badges appear in their final state immediately.
+
+| Step | Animation | Badge | Duration |
+|------|-----------|-------|----------|
+| Issue | Infinite loop — ∞ motif pulse (opacity/scale, no spin) | `loop` | 3s ease-in-out infinite |
+| Spec | Thumb-up fade-in-up (human approval) | `approved` | 0.6s ease-out, delay 0.4s |
+| Implement | PASS verdict fade-in | `pass` | 0.6s ease-out, delay 1.1s |
+| Deploy | Progress bar fill + checkmark fade-in | `shipped` | 0.6s ease-out, delay 1.8s |
+
+Animation rules:
+- Badges use `animation-fill-mode: both` and are `inline-flex`, so they
+  reserve their space and cause no layout shift when they appear.
+- All animations are opacity/transform/scale driven — no flashing above 3Hz
+  (WCAG 2.1 AA §2.3.1), no seizure risk.
+- The loop badge reuses the logo's ∞ motif (two circles) as an ambient,
+  non-aggressive pulse.
+
 ## 4. Components
 
 ### Logo
