@@ -39,6 +39,15 @@ curl -fsSL https://boucle.dev/install.sh | bash
 
 Then create an issue in your forge and tag it `boucle:triage` — the loop starts.
 
+## Brand
+
+The boucle logo is a **figurative afrofuturist face**: a golden afro (the
+full circle = the "boucle"), gold hoop créoles, and an afrofuturist gold
+visor with the infinity loop (∞) woven into the bridge. It is an inline SVG
+in the hero, with a matching `public/favicon.svg`.
+
+Made in Africa by [ankaboot.io](https://ankaboot.io).
+
 ## Development
 
 This is an [Astro](https://astro.build) static site. Build and preview locally:
