@@ -23,13 +23,17 @@ is child's play. The tone is futuristic but accessible, not elitist.
 
 ## 2. Design tokens
 
-### Color palette — Afro-futurist
+### Color palette — Afro-futurist × Forge (GitHub Primer / GitLab Pajamas)
+
+Surfaces follow GitHub Primer dark (`#0d1117` base, `#161b22` panel,
+`#21262d` raised) so a forge-native visitor instantly recognizes the
+environment. Accents keep the afrofuturist identity.
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--surface-base` | `#0a0a12` | Deep space black (base background) |
-| `--bg-secondary` | `#12121f` | Panel/card background |
-| `--surface-raised` | `#1a1a2e` | Elevated surface (code blocks, tooltips) |
+| `--surface-base` | `#0d1117` | GitHub-dark base background |
+| `--bg-secondary` | `#161b22` | Panel/card background (Primer `canvas-subtle`) |
+| `--surface-raised` | `#21262d` | Elevated surface (code blocks, tooltips, badges) |
 | `--accent` | `#f5c842` | Boucle d'or gold — primary accent (CTA, highlights, logo, afro, créoles, visor) |
 | `--accent-gold-dim` | `#c9a233` | Hover/active state for gold |
 | `--accent-violet` | `#7b2ff7` | Afro-futurist violet (secondary accent — gradients, glow, motif bands) |
@@ -37,8 +41,10 @@ is child's play. The tone is futuristic but accessible, not elitist.
 | `--text-primary` | `#f0f0f5` | Off-white (body text) |
 | `--text-secondary` | `#a0a0b8` | Muted text (descriptions, meta) |
 | `--text-gold` | `#f5c842` | Gold text (emphasis, logo) |
-| `--border` | `rgba(245, 200, 66, 0.15)` | Subtle gold border (cards, dividers) |
+| `--border` | `rgba(245, 200, 66, 0.15)` | Subtle gold border (featured card, gold-accented elements) |
+| `--border-neutral` | `rgba(255, 255, 255, 0.08)` | Subtle neutral border (non-featured cards, step icons, badges) |
 | `--destructive` | `#ff4d5e` | Error/destructive states (form validation, alerts) |
+| `--shadow-subtle` | `0 1px 3px rgba(0,0,0,0.3)` | Subtle forge-style card shadow |
 | `--glow-gold` | `rgba(245, 200, 66, 0.3)` | Gold glow (hover, focus) |
 | `--glow-violet` | `rgba(123, 47, 247, 0.25)` | Violet glow (ambient, gradients) |
 
@@ -47,7 +53,7 @@ is child's play. The tone is futuristic but accessible, not elitist.
 | Token | Value | Usage |
 |-------|-------|-------|
 | `--font-display` | `'Unbounded', 'Sora', sans-serif` | Headlines, hero, logo |
-| `--font-body` | `'Sora', system-ui, sans-serif` | Body text, descriptions |
+| `--font-body` | `system-ui, 'Sora', sans-serif` | Body text, descriptions (system-ui first for forge feel, Sora fallback for identity) |
 | `--font-mono` | `'Space Mono', monospace` | Code snippets, technical labels |
 
 **Font reevaluation (afrofuturist direction).** The previous stack (Space Grotesk /
@@ -84,9 +90,12 @@ readability or WCAG 2.1 AA contrast.
 
 ### Radius
 
-- Sharp corners on primary surfaces: `0px` (cards, panels — afro-futurist edge).
-- Pills on CTAs: `999px` (buttons — approachable contrast).
-- No `border-radius` between these two extremes.
+- **Forge-style `6px` border-radius on ALL components** (cards, buttons, badges,
+  step icons, code blocks, transition panels) — echoing GitHub Primer and
+  GitLab Pajamas. Token: `--radius: 6px`.
+- No `0px` sharp corners, no `999px` pills remain.
+- Exception: the decorative hero glow blobs use `50%` (circular ambient blurs),
+  not a component surface.
 
 ## 3. Motion
 
@@ -138,7 +147,11 @@ reinforce the afrofuturist identity without overwhelming the layout:
 - Logo + "boucle" wordmark (gold) centered or left-aligned.
 - Headline: "Construire un produit est un jeu d'enfant" — display font, fluid size.
 - Subheadline: "De un ticket dans votre forge à une feature en production. boucle travaille pendant que vous dormez, vous intervenez aux points de décision."
-- CTA: "Commencer" (gold pill, links to quick start) + "Comment ça marche" (ghost link).
+- CTA: "Commencer" (gold, 6px radius, links to quick start) + "Comment ça marche" (ghost link).
+- **Forge badges** — a row of subtle forge-style badges (e.g. "GitHub" and
+  "GitLab" with a small inline icon) sits below the subheadline. Each badge:
+  `--radius` 6px, `--border-neutral` border, `--surface-raised` background,
+  small (0.8rem) system-ui font, muted text. Signals "lives in your forge".
 - A subtle loop emoji ➰ or the logo mark as a visual anchor.
 
 ### How it works
@@ -150,10 +163,11 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 ### Why boucle
 
-- 5 promise cards, dark panels with subtle gold border.
+- 5 promise cards, dark panels with subtle neutral border and a subtle
+  forge-style shadow (`--shadow-subtle`), `--radius` 6px.
 - First card ("Lives in your forge") is the featured/prominent card — it spans
   the full width of the card grid and gets a distinct gold treatment (gold
-  border + glow) to mark it as the key differentiator.
+  border + gold glow) to mark it as the key differentiator.
 - Remaining 4 cards ("Deterministic and reliable", "Works while you sleep",
   "No UI, No CLI", "Self-healing, self-learning loop") display in a 2×2 grid on
   tablet/desktop, stacked on mobile.
@@ -202,5 +216,5 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 - Dark theme only — no light variant. `--surface-base` is the base, `--accent` drives attention.
 - Single-accent discipline: gold leads (CTA, logo, highlights), violet/cyan support only.
-- Sharp corners (`0px`) on primary surfaces; `999px` pills only on CTAs.
+- Forge-style `6px` radius on all components; subtle neutral borders and card shadows; no pills.
 - Layout follows the "Spacing & layout" grid; visual density is generous (whitespace ≥ 1.5rem between blocks).

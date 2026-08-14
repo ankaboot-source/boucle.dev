@@ -41,9 +41,13 @@ dogfood consumer of the engine.
 - **Afrofuturism** — a figurative afrofuturist logo (golden afro, gold
   hoop créoles, afrofuturist gold visor with the infinity loop), kente /
   adinkra / Sahelian geometric motifs, gold / violet / cyan accents on a
-  deep space black base.
+  GitHub-dark base.
+- **Forge aesthetic** — surfaces echo GitHub Primer dark and GitLab Pajamas:
+  `6px` border-radius on all components, subtle neutral borders and card
+  shadows, system-ui-first body font. A GitHub or GitLab user instantly
+  recognizes their forge's universe.
 - **Minimalism** — single page, no navigation bar, generous whitespace,
-  sharp corners on primary surfaces, pill CTAs. Dark theme only.
+  forge-style `6px` radius (no sharp corners, no pill CTAs). Dark theme only.
 - The full design system lives in [VISUAL-CHARTER.md](VISUAL-CHARTER.md).
 
 ## 5. Constraints

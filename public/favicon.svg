@@ -2,13 +2,13 @@
   <!-- Afro: full gold circle (the "boucle") -->
   <circle cx="50" cy="50" r="46" fill="#f5c842" />
   <!-- Face: figurative silhouette -->
-  <path d="M50 30 C 40 30, 34 36, 34 44 L 34 60 C 34 70, 40 78, 50 78 C 60 78, 66 70, 66 60 L 66 44 C 66 36, 60 30, 50 30 Z" fill="#0a0a12" />
+  <path d="M50 30 C 40 30, 34 36, 34 44 L 34 60 C 34 70, 40 78, 50 78 C 60 78, 66 70, 66 60 L 66 44 C 66 36, 60 30, 50 30 Z" fill="#0d1117" />
   <!-- Sunglasses: afrofuturist gold visor -->
   <rect x="36" y="44" width="28" height="10" rx="5" fill="#f5c842" />
   <!-- Infinity loop (∞) woven into the visor bridge -->
-  <circle cx="46" cy="49" r="3.5" fill="#0a0a12" />
-  <circle cx="54" cy="49" r="3.5" fill="#0a0a12" />
+  <circle cx="46" cy="49" r="3.5" fill="#0d1117" />
+  <circle cx="54" cy="49" r="3.5" fill="#0d1117" />
   <!-- Créoles: gold hoop earrings -->
-  <circle cx="30" cy="62" r="5" stroke="#0a0a12" stroke-width="2.5" />
-  <circle cx="70" cy="62" r="5" stroke="#0a0a12" stroke-width="2.5" />
+  <circle cx="30" cy="62" r="5" stroke="#0d1117" stroke-width="2.5" />
+  <circle cx="70" cy="62" r="5" stroke="#0d1117" stroke-width="2.5" />
 </svg>

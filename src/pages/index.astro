@@ -15,7 +15,7 @@ const description =
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#0a0a12" />
+    <meta name="theme-color" content="#0d1117" />
     <link rel="icon" type="image/svg+xml" href="/boucle.dev/favicon.svg" />
     <style>
       /* Self-hosted fonts — no Google Fonts CDN (GDPR).
@@ -51,9 +51,11 @@ const description =
       }
 
       :root {
-        --surface-base: #0a0a12;
-        --bg-secondary: #12121f;
-        --surface-raised: #1a1a2e;
+        /* Forge-style surfaces (GitHub Primer dark) */
+        --surface-base: #0d1117;
+        --bg-secondary: #161b22;
+        --surface-raised: #21262d;
+        /* Afro-futurist accents — unchanged */
         --accent: #f5c842;
         --accent-gold-dim: #c9a233;
         --accent-violet: #7b2ff7;
@@ -61,11 +63,15 @@ const description =
         --text-primary: #f0f0f5;
         --text-secondary: #a0a0b8;
         --text-gold: #f5c842;
+        /* Forge-style radius, borders and shadows */
+        --radius: 6px;
         --border: rgba(245, 200, 66, 0.15);
+        --border-neutral: rgba(255, 255, 255, 0.08);
+        --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.3);
         --glow-gold: rgba(245, 200, 66, 0.3);
         --glow-violet: rgba(123, 47, 247, 0.25);
         --font-display: 'Unbounded', 'Sora', sans-serif;
-        --font-body: 'Sora', system-ui, sans-serif;
+        --font-body: system-ui, 'Sora', sans-serif;
         --font-mono: 'Space Mono', monospace;
       }
 
@@ -100,7 +106,7 @@ const description =
         color: var(--surface-base);
         font-weight: 600;
         text-decoration: none;
-        border-radius: 999px;
+        border-radius: var(--radius);
       }
       .skip-link:focus {
         left: 1rem;
@@ -260,6 +266,35 @@ const description =
         margin: 0 auto 2.5rem;
       }
 
+      /* Forge-style badges (Primer/Pajamas): 6px radius, subtle neutral
+         border, small system-ui font. Signals "lives in your forge". */
+      .forge-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-bottom: 1.75rem;
+      }
+      .forge-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.75rem;
+        font-family: var(--font-body);
+        font-size: 0.8rem;
+        font-weight: 600;
+        line-height: 1.4;
+        color: var(--text-secondary);
+        background: var(--surface-raised);
+        border: 1px solid var(--border-neutral);
+        border-radius: var(--radius);
+      }
+      .forge-badge svg {
+        width: 14px;
+        height: 14px;
+        color: var(--accent);
+      }
+
       .hero-ctas {
         display: flex;
         flex-wrap: wrap;
@@ -274,7 +309,7 @@ const description =
         font-weight: 600;
         font-size: 1.05rem;
         text-decoration: none;
-        border-radius: 999px;
+        border-radius: var(--radius);
         transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
       }
       .btn--primary {
@@ -336,8 +371,8 @@ const description =
         align-items: center;
         justify-content: center;
         background: var(--bg-secondary);
-        border: 1px solid var(--border);
-        border-radius: 0;
+        border: 1px solid var(--border-neutral);
+        border-radius: var(--radius);
         color: var(--accent);
       }
       .step-icon svg {
@@ -369,8 +404,9 @@ const description =
 
       .card {
         background: var(--surface-base);
-        border: 1px solid var(--border);
-        border-radius: 0;
+        border: 1px solid var(--border-neutral);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-subtle);
         padding: 1.75rem;
       }
       .card h3 {
@@ -432,7 +468,7 @@ const description =
       }
       .code {
         background: var(--surface-raised);
-        border-radius: 0;
+        border-radius: var(--radius);
         padding: 0.9rem 1rem;
         font-family: var(--font-mono);
         font-size: 0.85rem;
@@ -451,9 +487,9 @@ const description =
         margin: 1.5rem auto 0;
         background: var(--bg-secondary);
         border: 1px solid var(--accent);
-        border-radius: 0;
+        border-radius: var(--radius);
         padding: 1.5rem;
-        box-shadow: 0 0 24px var(--glow-gold);
+        box-shadow: var(--shadow-subtle), 0 0 24px var(--glow-gold);
       }
       .quick-transition .num {
         font-family: var(--font-mono);
@@ -470,7 +506,7 @@ const description =
         color: var(--accent);
         background: var(--surface-raised);
         padding: 0.1rem 0.35rem;
-        border-radius: 0;
+        border-radius: var(--radius);
       }
 
       .quick-link {
@@ -600,16 +636,16 @@ const description =
                    L 66 44
                    C 66 36, 60 30, 50 30
                    Z"
-                fill="var(--surface-base, #0a0a12)"
+                fill="var(--surface-base, #0d1117)"
               />
               <!-- Sunglasses: afrofuturist gold visor -->
               <rect x="36" y="44" width="28" height="10" rx="5" fill="var(--accent, #f5c842)" />
               <!-- Infinity loop (∞) woven into the visor bridge -->
-              <circle cx="46" cy="49" r="3.5" fill="var(--surface-base, #0a0a12)" />
-              <circle cx="54" cy="49" r="3.5" fill="var(--surface-base, #0a0a12)" />
+              <circle cx="46" cy="49" r="3.5" fill="var(--surface-base, #0d1117)" />
+              <circle cx="54" cy="49" r="3.5" fill="var(--surface-base, #0d1117)" />
               <!-- Créoles: gold hoop earrings (dark rings = hoop openings) -->
-              <circle cx="30" cy="62" r="5" stroke="var(--surface-base, #0a0a12)" stroke-width="2.5" />
-              <circle cx="70" cy="62" r="5" stroke="var(--surface-base, #0a0a12)" stroke-width="2.5" />
+              <circle cx="30" cy="62" r="5" stroke="var(--surface-base, #0d1117)" stroke-width="2.5" />
+              <circle cx="70" cy="62" r="5" stroke="var(--surface-base, #0d1117)" stroke-width="2.5" />
             </svg>
             <span class="wordmark">boucle</span>
           </div>
@@ -619,6 +655,21 @@ const description =
             From a ticket in your forge to a feature in production. boucle
             works while you sleep, you intervene at decision points.
           </p>
+
+          <div class="forge-badges" aria-label="Works with GitHub and GitLab">
+            <span class="forge-badge">
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z" />
+              </svg>
+              GitHub
+            </span>
+            <span class="forge-badge">
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M15.29 8.2l-2.13-2.13c-.06-.06-.13-.09-.21-.09h-.35l1.2-1.2a.48.48 0 000-.69L12.6 2.68a.48.48 0 00-.69 0l-1.2 1.2V3.5c0 .08-.03.15-.09.21L8.5 5.84v-2.4l.8-.8a.47.47 0 000-.67L8.5 1.17a.47.47 0 00-.67 0l-.67.67-.67-.67a.47.47 0 00-.67 0l-.8.8a.47.47 0 000 .67l.8.8v2.4L3.7 3.71c-.06-.06-.13-.09-.21-.09h-.35l1.2-1.2a.48.48 0 000-.69L3.13.67a.48.48 0 00-.69 0L.67 2.44a.48.48 0 000 .69l1.2 1.2h-.34c-.08 0-.15.03-.21.09L.71 6.55a.48.48 0 000 .69l1.2 1.2c.06.06.13.09.21.09h.34v6.9c0 .18.14.33.33.33h3.6v-4.2h1.8v4.2h3.6c.18 0 .33-.15.33-.33v-6.9h.34c.08 0 .15-.03.21-.09l1.2-1.2a.48.48 0 000-.69z" />
+              </svg>
+              GitLab
+            </span>
+          </div>
 
           <div class="hero-ctas">
             <a class="btn btn--primary" href="#quick-start">Get started</a>
