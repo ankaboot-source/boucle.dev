@@ -16,63 +16,38 @@ const description =
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#0a0a12" />
+    <link rel="icon" type="image/svg+xml" href="/boucle.dev/favicon.svg" />
     <style>
-      /* Self-hosted fonts — no Google Fonts CDN (GDPR). */
+      /* Self-hosted fonts — no Google Fonts CDN (GDPR).
+         Unbounded (display) and Sora (body) are variable fonts (wght axis),
+         so a single woff2 serves the whole weight range. Space Mono is static. */
       @font-face {
-        font-family: 'Space Grotesk';
+        font-family: 'Unbounded';
         font-style: normal;
-        font-weight: 500;
+        font-weight: 200 900;
         font-display: swap;
-        src: url('/boucle.dev/fonts/space-grotesk-500.woff2') format('woff2');
+        src: url('/boucle.dev/fonts/unbounded.woff2') format('woff2');
       }
       @font-face {
-        font-family: 'Space Grotesk';
+        font-family: 'Sora';
         font-style: normal;
-        font-weight: 600;
+        font-weight: 400 800;
         font-display: swap;
-        src: url('/boucle.dev/fonts/space-grotesk-600.woff2') format('woff2');
+        src: url('/boucle.dev/fonts/sora.woff2') format('woff2');
       }
       @font-face {
-        font-family: 'Space Grotesk';
+        font-family: 'Space Mono';
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url('/boucle.dev/fonts/space-mono-400.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Space Mono';
         font-style: normal;
         font-weight: 700;
         font-display: swap;
-        src: url('/boucle.dev/fonts/space-grotesk-700.woff2') format('woff2');
-      }
-      @font-face {
-        font-family: 'Inter';
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url('/boucle.dev/fonts/inter-400.woff2') format('woff2');
-      }
-      @font-face {
-        font-family: 'Inter';
-        font-style: normal;
-        font-weight: 500;
-        font-display: swap;
-        src: url('/boucle.dev/fonts/inter-500.woff2') format('woff2');
-      }
-      @font-face {
-        font-family: 'Inter';
-        font-style: normal;
-        font-weight: 600;
-        font-display: swap;
-        src: url('/boucle.dev/fonts/inter-600.woff2') format('woff2');
-      }
-      @font-face {
-        font-family: 'JetBrains Mono';
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: url('/boucle.dev/fonts/jetbrains-mono-400.woff2') format('woff2');
-      }
-      @font-face {
-        font-family: 'JetBrains Mono';
-        font-style: normal;
-        font-weight: 500;
-        font-display: swap;
-        src: url('/boucle.dev/fonts/jetbrains-mono-500.woff2') format('woff2');
+        src: url('/boucle.dev/fonts/space-mono-700.woff2') format('woff2');
       }
 
       :root {
@@ -89,9 +64,9 @@ const description =
         --border: rgba(245, 200, 66, 0.15);
         --glow-gold: rgba(245, 200, 66, 0.3);
         --glow-violet: rgba(123, 47, 247, 0.25);
-        --font-display: 'Space Grotesk', 'Inter', sans-serif;
-        --font-body: 'Inter', system-ui, sans-serif;
-        --font-mono: 'JetBrains Mono', monospace;
+        --font-display: 'Unbounded', 'Sora', sans-serif;
+        --font-body: 'Sora', system-ui, sans-serif;
+        --font-mono: 'Space Mono', monospace;
       }
 
       *,
@@ -222,6 +197,30 @@ const description =
           opacity: 1;
           transform: scale(1.08);
         }
+      }
+
+      /* Subtle kente/adinkra-inspired geometric band (Sahelian motif).
+         Decorative only, low opacity, aria-hidden, no motion. */
+      .hero-motif {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+        transform: translateX(-50%);
+        width: min(720px, 90vw);
+        height: 14px;
+        opacity: 0.35;
+        pointer-events: none;
+        background-image: repeating-linear-gradient(
+          90deg,
+          var(--accent) 0 6px,
+          transparent 6px 12px,
+          var(--accent-violet) 12px 16px,
+          transparent 16px 22px,
+          var(--accent-cyan) 22px 26px,
+          transparent 26px 32px
+        );
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
+        mask-image: linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent);
       }
 
       .hero-inner {
@@ -551,33 +550,42 @@ const description =
       <section class="hero" aria-label="boucle — introduction">
         <div class="hero-glow hero-glow--violet" aria-hidden="true"></div>
         <div class="hero-glow hero-glow--gold" aria-hidden="true"></div>
+        <div class="hero-motif" aria-hidden="true"></div>
 
         <div class="hero-inner">
           <div class="logo-lockup">
-            <!-- Geometric afro-futurist logo: girl's head with afro hair
-                 forming a full gold circle (the "boucle"). -->
+            <!-- Figurative afro-futurist logo: a face with a golden afro
+                 (full circle = the "boucle"), gold hoop créoles, an
+                 afrofuturist gold visor with the infinity loop (∞) woven
+                 into the bridge. Inline SVG, no raster. -->
             <svg
               viewBox="0 0 100 100"
               role="img"
-              aria-label="boucle logo — silhouette of a girl with golden afro hair"
+              aria-label="boucle logo — afrofuturist face with golden afro, créoles, and sunglasses"
               fill="none"
             >
-              <!-- Afro: full gold circle -->
-              <circle cx="50" cy="50" r="46" fill="var(--accent)" />
-              <!-- Face: negative-space geometric profile -->
+              <!-- Afro: full gold circle (the "boucle") -->
+              <circle cx="50" cy="50" r="46" fill="var(--accent, #f5c842)" />
+              <!-- Face: figurative silhouette -->
               <path
-                d="M50 22
-                   a28 28 0 0 1 0 56
-                   a20 20 0 0 1 0 -40
-                   a12 12 0 0 0 0 24
-                   a8 8 0 0 0 0 -16
-                   a4 4 0 0 0 0 8
-                   a2 2 0 0 0 0 -4
+                d="M50 30
+                   C 40 30, 34 36, 34 44
+                   L 34 60
+                   C 34 70, 40 78, 50 78
+                   C 60 78, 66 70, 66 60
+                   L 66 44
+                   C 66 36, 60 30, 50 30
                    Z"
-                fill="var(--surface-base)"
+                fill="var(--surface-base, #0a0a12)"
               />
-              <!-- Eye -->
-              <circle cx="58" cy="46" r="3" fill="var(--surface-base)" />
+              <!-- Sunglasses: afrofuturist gold visor -->
+              <rect x="36" y="44" width="28" height="10" rx="5" fill="var(--accent, #f5c842)" />
+              <!-- Infinity loop (∞) woven into the visor bridge -->
+              <circle cx="46" cy="49" r="3.5" fill="var(--surface-base, #0a0a12)" />
+              <circle cx="54" cy="49" r="3.5" fill="var(--surface-base, #0a0a12)" />
+              <!-- Créoles: gold hoop earrings (dark rings = hoop openings) -->
+              <circle cx="30" cy="62" r="5" stroke="var(--surface-base, #0a0a12)" stroke-width="2.5" />
+              <circle cx="70" cy="62" r="5" stroke="var(--surface-base, #0a0a12)" stroke-width="2.5" />
             </svg>
             <span class="wordmark">boucle</span>
           </div>
