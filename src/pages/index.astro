@@ -61,6 +61,7 @@ const description =
         --text-primary: #f0f0f5;
         --text-secondary: #a0a0b8;
         --text-gold: #f5c842;
+        --destructive: #ff4d5e;
         --border: rgba(245, 200, 66, 0.15);
         --glow-gold: rgba(245, 200, 66, 0.3);
         --glow-violet: rgba(123, 47, 247, 0.25);
@@ -308,9 +309,12 @@ const description =
       }
 
       /* Progressive-enhancement fallback: without CSS Grid support,
-         the steps simply stack as blocks. */
-      .steps > .step {
-        display: block;
+         the steps simply stack as blocks. Scoped to @supports so the
+         flex layout (icon left, body right) still applies in grid browsers. */
+      @supports not (display: grid) {
+        .steps > .step {
+          display: block;
+        }
       }
 
       /* The "boucle" — a visible gold dotted connector line.
@@ -501,6 +505,10 @@ const description =
         color: var(--destructive);
         border: 1px solid var(--border);
         background: var(--surface-raised);
+      }
+      .mock-loop-arrow {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
       }
 
       /* ============ WHY BOUCLE ============ */
@@ -927,8 +935,10 @@ const description =
                   </div>
                   <div class="mock-body">
                     <div class="mock-row">
+                      <span class="mock-verdict mock-verdict--fail">FAIL</span>
+                      <span class="mock-loop-arrow" aria-hidden="true">→</span>
                       <span class="mock-verdict mock-verdict--pass">PASS</span>
-                      <span class="mock-meta">verified · ready</span>
+                      <span class="mock-meta">reviewed · loops until pass</span>
                     </div>
                   </div>
                 </div>
