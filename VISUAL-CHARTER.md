@@ -120,14 +120,19 @@ hair.
 
 ### Quick start
 
-- Minimal: a 3-step list (add submodule → run setup → create issue).
-- Code snippets in `--font-mono` on `--surface-raised` background.
+- Minimal: a single `curl -fsSL https://boucle.dev/install.sh | bash` oneliner.
+- Code snippet in `--font-mono` on `--surface-raised` background.
+- Below the oneliner, a visually distinct transition panel (gold border +
+  `--bg-secondary` background + gold glow) instructing "Create an issue in
+  your forge and tag it `boucle:triage`" — marking the shift from setup
+  tooling to daily usage in the user's own forge.
 - "Voir la doc" link to the README.
 
 ### Footer
 
 - Minimal, discreet.
-- "Made in Africa 🌍 for the world" in `--text-secondary`, small font, centered or left.
+- "Made in Africa by [ankaboot.io](https://ankaboot.io)" in `--text-secondary`,
+  small font, centered or left. The author attribution is present but subtle.
 - Links: GitHub, License (AGPL-3.0), Docs.
 - No heavy footer — the message is subtle, not a banner.
 

@@ -31,25 +31,13 @@ Four steps, one loop. You stay in your forge, boucle does the rest.
 
 ## Quick start
 
-Three steps, and the loop takes over.
+One command, and the loop takes over.
 
-1. Add boucle as a submodule:
+```sh
+curl -fsSL https://boucle.dev/install.sh | bash
+```
 
-   ```sh
-   git submodule add https://github.com/ankaboot-source/boucle .boucle
-   ```
-
-2. Set everything up (idempotent):
-
-   ```sh
-   .boucle/bin/setup gitlab
-   ```
-
-3. Create an issue, the loop starts:
-
-   ```sh
-   Create an issue with the boucle:triage label
-   ```
+Then create an issue in your forge and tag it `boucle:triage` — the loop starts.
 
 ## Development
 
