@@ -22,12 +22,14 @@ Five promises, one loop.
 
 ## How it works
 
-Four steps, one loop. You stay in your forge, boucle does the rest.
+Six steps, one loop. You stay in your forge, boucle does the rest.
 
-1. **Issue** — you create a ticket in your forge.
-2. **Spec** — boucle analyzes and writes the spec. You approve it.
-3. **Implement** — boucle implements and deploys a preview.
-4. **Deploy** — you approve the MR, the feature ships to production.
+1. **Je droppe mon idée dans une issue** — you create an issue in your forge, with a title and a description. It's just a normal ticket.
+2. **Je reçois une proposition avec une image** — boucle analyzes, writes a spec, and posts a comment on the issue with a preview (screenshot/image of the proposed page). You see exactly what it will look like.
+3. **Je valide avec un pouce** — you react with a thumb up on the spec comment. No form, no CLI. Just an emoji.
+4. **Ça bosse** — boucle implements, builds, and deploys a preview. You do nothing meanwhile. The agent works.
+5. **C'est vérifié** — the reviewer verifies the render and posts a verdict (PASS/FAIL) as a comment on the PR. On FAIL it loops; on PASS the PR is ready.
+6. **Je valide, c'est live** — you approve the PR (or boucle merges per config). The feature ships to production. It's live.
 
 ## Quick start
 

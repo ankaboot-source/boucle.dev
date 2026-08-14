@@ -307,6 +307,12 @@ const description =
         margin-top: 2rem;
       }
 
+      /* Progressive-enhancement fallback: without CSS Grid support,
+         the steps simply stack as blocks. */
+      .steps > .step {
+        display: block;
+      }
+
       /* The "boucle" — a visible gold dotted connector line.
          Vertical on mobile, horizontal on desktop. */
       .steps::before {
@@ -353,6 +359,148 @@ const description =
       .step-body p {
         margin: 0;
         color: var(--text-secondary);
+      }
+
+      /* ---- Forge mini-schemas ---- */
+      .step-mock {
+        flex: 1 1 100%;
+        margin-top: 1rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 0;
+        padding: 1rem;
+        font-family: var(--font-body);
+        text-align: left;
+      }
+      .mock-head {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.75rem;
+      }
+      .mock-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent-gold-dim);
+      }
+      .mock-dot--violet {
+        background: var(--accent-violet);
+      }
+      .mock-dot--cyan {
+        background: var(--accent-cyan);
+      }
+      .mock-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-left: 0.25rem;
+      }
+      .mock-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .mock-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .mock-label {
+        flex: 0 0 auto;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--text-gold);
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+        padding: 0.15rem 0.45rem;
+      }
+      .mock-text {
+        font-size: 0.8rem;
+        color: var(--text-primary);
+        line-height: 1.4;
+      }
+      .mock-meta {
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+      }
+      .mock-preview {
+        position: relative;
+        height: 64px;
+        background:
+          repeating-linear-gradient(
+            -45deg,
+            var(--surface-raised),
+            var(--surface-raised) 8px,
+            var(--bg-secondary) 8px,
+            var(--bg-secondary) 16px
+          );
+        border: 1px dashed var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .mock-preview span {
+        font-size: 0.7rem;
+        color: var(--text-secondary);
+        background: var(--bg-secondary);
+        padding: 0.15rem 0.5rem;
+      }
+      .mock-thumb {
+        font-size: 1.25rem;
+        line-height: 1;
+      }
+      .mock-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        color: var(--text-primary);
+      }
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: status-pulse 1.6s ease-in-out infinite;
+      }
+      @keyframes status-pulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 var(--glow-gold);
+          opacity: 1;
+        }
+        50% {
+          box-shadow: 0 0 0 6px transparent;
+          opacity: 0.55;
+        }
+      }
+      .mock-verdict {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 0.15rem 0.5rem;
+        border-radius: 0;
+      }
+      .mock-verdict--pass {
+        color: var(--accent);
+        border: 1px solid var(--border);
+        background: var(--surface-raised);
+      }
+      .mock-verdict--live {
+        color: var(--surface-base);
+        background: var(--accent);
+        border: 1px solid var(--accent);
+      }
+      .mock-verdict--fail {
+        color: var(--destructive);
+        border: 1px solid var(--border);
+        background: var(--surface-raised);
       }
 
       /* ============ WHY BOUCLE ============ */
@@ -513,16 +661,24 @@ const description =
 
       /* ============ RESPONSIVE ============ */
       @media (min-width: 768px) {
+        .steps {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 2.5rem 1.5rem;
+        }
+        /* Vertical connector left-aligned per step column */
+        .steps::before {
+          left: 28px;
+        }
         .cards {
           grid-template-columns: repeat(2, 1fr);
         }
       }
       @media (min-width: 1024px) {
         .steps {
-          grid-template-columns: repeat(4, 1fr);
-          gap: 1.5rem;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 2.5rem 1.5rem;
         }
-        /* Horizontal dotted connector across the 4 steps */
+        /* Horizontal dotted connector across the 6 steps */
         .steps::before {
           top: 28px;
           bottom: auto;
@@ -539,8 +695,11 @@ const description =
           text-align: center;
           padding: 0;
         }
+        .step-mock {
+          text-align: left;
+        }
         .step-body p {
-          max-width: 220px;
+          max-width: 280px;
           margin: 0 auto;
         }
         .cards {
@@ -555,6 +714,10 @@ const description =
         }
         .hero-glow {
           animation: none;
+        }
+        .status-dot {
+          animation: none;
+          opacity: 1;
         }
         *,
         *::before,
@@ -632,7 +795,7 @@ const description =
         <div class="container">
           <h2 id="how-title">How it works</h2>
           <p class="section-sub">
-            Four steps, one loop. You stay in your forge, boucle does the rest.
+            Six steps, one loop. You stay in your forge, boucle does the rest.
           </p>
 
           <div class="steps">
@@ -644,8 +807,27 @@ const description =
                 </svg>
               </div>
               <div class="step-body">
-                <h3>Issue</h3>
-                <p>You create a ticket in your forge.</p>
+                <h3>Je droppe mon idée dans une issue</h3>
+                <p>Je crée une issue dans ma forge, avec un titre et une description. C'est juste un ticket normal.</p>
+                <div class="step-mock" aria-hidden="true">
+                  <div class="mock-head">
+                    <span class="mock-dot"></span>
+                    <span class="mock-dot mock-dot--violet"></span>
+                    <span class="mock-dot mock-dot--cyan"></span>
+                    <span class="mock-title">Issue · #42</span>
+                  </div>
+                  <div class="mock-body">
+                    <div class="mock-row">
+                      <span class="mock-label">Title</span>
+                      <span class="mock-text">Add a dark mode toggle</span>
+                    </div>
+                    <div class="mock-row">
+                      <span class="mock-label">Desc</span>
+                      <span class="mock-text">A normal ticket, nothing special.</span>
+                    </div>
+                    <span class="mock-meta">opened · boucle:triage</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -656,8 +838,46 @@ const description =
                 </svg>
               </div>
               <div class="step-body">
-                <h3>Spec</h3>
-                <p>boucle analyzes and writes the spec. You approve it.</p>
+                <h3>Je reçois une proposition avec une image</h3>
+                <p>boucle analyse, écrit un spec, et poste un commentaire sur l'issue avec un preview. Je vois exactement ce que ça va donner.</p>
+                <div class="step-mock" aria-hidden="true">
+                  <div class="mock-head">
+                    <span class="mock-dot"></span>
+                    <span class="mock-dot mock-dot--violet"></span>
+                    <span class="mock-dot mock-dot--cyan"></span>
+                    <span class="mock-title">Comment · spec</span>
+                  </div>
+                  <div class="mock-body">
+                    <div class="mock-preview"><span>preview</span></div>
+                    <span class="mock-meta">boucle · proposed spec</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M7 11v6M10 11v8M3 13v4M3 11h3l1-5h5l1 5h5v2l-2 7h-6l-5-3v-6z" />
+                </svg>
+              </div>
+              <div class="step-body">
+                <h3>Je valide avec un pouce</h3>
+                <p>Je réagis avec un thumb up sur le commentaire de spec. Pas de formulaire, pas de CLI. Juste un emoji.</p>
+                <div class="step-mock" aria-hidden="true">
+                  <div class="mock-head">
+                    <span class="mock-dot"></span>
+                    <span class="mock-dot mock-dot--violet"></span>
+                    <span class="mock-dot mock-dot--cyan"></span>
+                    <span class="mock-title">Reaction</span>
+                  </div>
+                  <div class="mock-body">
+                    <div class="mock-row">
+                      <span class="mock-thumb" aria-hidden="true">👍</span>
+                      <span class="mock-meta">you · approved spec</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -669,8 +889,23 @@ const description =
                 </svg>
               </div>
               <div class="step-body">
-                <h3>Implement</h3>
-                <p>boucle implements and deploys a preview.</p>
+                <h3>Ça bosse</h3>
+                <p>boucle implémente, build, déploie un preview. Je n'ai rien à faire pendant ce temps. L'agent travaille.</p>
+                <div class="step-mock" aria-hidden="true">
+                  <div class="mock-head">
+                    <span class="mock-dot"></span>
+                    <span class="mock-dot mock-dot--violet"></span>
+                    <span class="mock-dot mock-dot--cyan"></span>
+                    <span class="mock-title">PR · working</span>
+                  </div>
+                  <div class="mock-body">
+                    <div class="mock-status">
+                      <span class="status-dot" aria-hidden="true"></span>
+                      <span class="mock-text">boucle is working…</span>
+                    </div>
+                    <span class="mock-meta">implementing · building · preview</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -681,8 +916,49 @@ const description =
                 </svg>
               </div>
               <div class="step-body">
-                <h3>Deploy</h3>
-                <p>You approve the MR, the feature ships to production.</p>
+                <h3>C'est vérifié</h3>
+                <p>Le reviewer vérifie le rendu, poste un verdict (PASS/FAIL) en commentaire sur la PR. Si FAIL, ça boucle. Si PASS, la PR est prête.</p>
+                <div class="step-mock" aria-hidden="true">
+                  <div class="mock-head">
+                    <span class="mock-dot"></span>
+                    <span class="mock-dot mock-dot--violet"></span>
+                    <span class="mock-dot mock-dot--cyan"></span>
+                    <span class="mock-title">PR · verdict</span>
+                  </div>
+                  <div class="mock-body">
+                    <div class="mock-row">
+                      <span class="mock-verdict mock-verdict--pass">PASS</span>
+                      <span class="mock-meta">verified · ready</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M8 12.5l2.5 2.5L16 9.5" />
+                </svg>
+              </div>
+              <div class="step-body">
+                <h3>Je valide, c'est live</h3>
+                <p>J'approuve la PR (ou boucle merge selon la config). La feature ship en production. C'est live.</p>
+                <div class="step-mock" aria-hidden="true">
+                  <div class="mock-head">
+                    <span class="mock-dot"></span>
+                    <span class="mock-dot mock-dot--violet"></span>
+                    <span class="mock-dot mock-dot--cyan"></span>
+                    <span class="mock-title">PR · merged</span>
+                  </div>
+                  <div class="mock-body">
+                    <div class="mock-row">
+                      <span class="mock-verdict mock-verdict--live">LIVE</span>
+                      <span class="mock-meta">merged · deployed to production</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -143,10 +143,19 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 ### How it works
 
-- 4-step horizontal/vertical flow (mobile-first): Issue → Spec → Implement → Deploy.
-- Each step: icon (geometric SVG), title, one-sentence description.
-- Connected by a faint gold dotted line (the "loop").
-- Matches the README mermaid diagram but simplified for a landing page.
+- 6-step flow mirroring the real forge loop (mobile-first): Issue → Spec+image
+  → Thumb up → Work → Verdict → Live.
+- Each step: icon (geometric SVG), first-person narrative title, one-sentence
+  description, and a mini forge-UI mockup (issue card, comment with preview
+  image, reaction emoji, working-status indicator with pulse, PR with PASS/FAIL
+  verdict badge, merged PR with live badge).
+- Connected by a gold dotted line (the "loop"). Vertical on mobile, horizontal
+  on desktop.
+- Mockups are inline HTML/CSS using the charter tokens — no raster images, no
+  external assets. Decorative mockup chrome is `aria-hidden`; the step
+  description text stays semantic and readable.
+- The working-status pulse is disabled under `prefers-reduced-motion: reduce`.
+- Matches the README flow but simplified for a landing page.
 
 ### Why boucle
 
