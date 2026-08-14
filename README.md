@@ -8,7 +8,7 @@ own machine.
 
 ## Why boucle
 
-Five promises, one loop.
+Harness made for human, made by an indie product builder for product builders.
 
 1. **Lives in your forge** — boucle lives in your forge (GitHub/GitLab). No
    external tool, no separate dashboard. Everything happens where you already
@@ -24,14 +24,14 @@ Five promises, one loop.
 
 ## How it works
 
-Six steps, one loop. You stay in your forge, boucle does the rest.
+boucle lives in your forge. GitHub, GitLab. No external tool, no dashboard.
 
-1. **Je droppe mon idée dans une issue** — I create an issue in my forge with a title and a description. It's just a normal ticket.
-2. **Je reçois une proposition avec une image** — boucle analyzes, writes a spec, and posts a comment on the issue with a preview. I see exactly what it will look like.
-3. **Je valide avec un pouce** — I react with a thumb up on the spec comment. No form, no CLI. Just an emoji.
-4. **Ça bosse** — boucle implements, builds, deploys a preview. I have nothing to do meanwhile. The agent works.
-5. **C'est vérifié** — the reviewer checks the render, posts a verdict (PASS/FAIL) as a PR comment. If FAIL, it loops. If PASS, the PR is ready.
-6. **Je valide, c'est live** — I approve the PR (or boucle merges per config). The feature ships to production. It's live.
+1. **Drop your idea in an issue** — I create an issue in my forge with a title and a description. It's just a normal ticket.
+2. **Receive a proposal with a preview** — boucle analyzes, writes a spec, and posts a comment on the issue with a preview. I see exactly what it will look like.
+3. **Validate with a thumb** — I react with a thumb up on the spec comment. No form, no CLI. Just an emoji.
+4. **It works** — boucle implements, builds, deploys a preview. I have nothing to do meanwhile. The agent works.
+5. **It's verified** — the reviewer checks the render, posts a verdict (PASS/FAIL) as a PR comment. If FAIL, it loops. If PASS, the PR is ready.
+6. **Approve, it's live** — I approve the PR (or boucle merges per config). The feature ships to production. It's live.
 
 ## Quick start
 

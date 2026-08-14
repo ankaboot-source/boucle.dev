@@ -161,18 +161,18 @@ reinforce the afrofuturist identity without overwhelming the layout:
   `--border-neutral` border, a `--shadow-subtle`, a small 16px inline SVG mark,
   and a 0.8rem label. Hover shifts the label and border to gold. They give an
   at-a-glance "Lives in your forge" signal to visitors who recognize the forges.
-- CTA: "Commencer" (gold button, 6px radius, links to quick start) + "Comment ça marche" (ghost link, 6px radius).
+- CTA: "Get started" (gold button, 6px radius, links to quick start) + "How it works" (ghost link, 6px radius).
 - A subtle loop emoji ➰ or the logo mark as a visual anchor.
 
 ### How it works
 
 - 6-step flow (mobile-first vertical, then 2-col ≥768px, 3-col ≥1024px):
-  1. Je droppe mon idée dans une issue
-  2. Je reçois une proposition avec une image
-  3. Je valide avec un pouce
-  4. Ça bosse
-  5. C'est vérifié
-  6. Je valide, c'est live
+  1. Drop your idea in an issue
+  2. Receive a proposal with a preview
+  3. Validate with a thumb
+  4. It works
+  5. It's verified
+  6. Approve, it's live
 - Each step: icon (geometric SVG), first-person narrative title, one-sentence
   description, and a forge mini-mockup (issue card, comment with preview,
   reaction emoji, working status, PR verdict, merged/live badge).
