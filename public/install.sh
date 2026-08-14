@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install.sh — one-line installer for boucle.
 #
-#   curl -fsSL https://boucle.dev/install.sh | bash
+#   curl -fsSL https://ankaboot-source.github.io/boucle.dev/install.sh | bash
 #
 # Clones the boucle engine into .boucle/ (if not already present) and runs
 # bin/setup, which auto-detects your forge (GitHub/GitLab) from the origin
