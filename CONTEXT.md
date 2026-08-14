@@ -23,8 +23,8 @@ dogfood consumer of the engine.
 - **Product Builders**: those who build products (websites, applications)
   but are not necessarily full-time developers.
 - The copy is English (public, global audience).
-- The tone is futuristic but accessible, not elitist: "Building a product
-  is child's play."
+- The tone is futuristic but accessible, not elitist: "Great ideas
+  deserve to ship."
 
 ## 3. Tech stack
 

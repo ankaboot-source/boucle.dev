@@ -11,8 +11,8 @@ page targets **Product Builders** (not necessarily full-time developers) who
 want to ship websites and applications without babysitting AI agents
 overnight.
 
-**Promise:** "Construire un produit est un jeu d'enfant" — building a product
-is child's play. The tone is futuristic but accessible, not elitist.
+**Promise:** "Great ideas deserve to ship." — from a ticket in your forge to
+a feature in production. The tone is futuristic but accessible, not elitist.
 
 **Key messages (in priority order):**
 1. Lives in your forge — boucle lives in your forge (GitHub/GitLab), no external tool, no separate dashboard.
@@ -145,8 +145,8 @@ reinforce the afrofuturist identity without overwhelming the layout:
 - Full-viewport height, dark gradient background (`--surface-base` → `--bg-secondary`).
 - Ambient violet/gold glow blobs (CSS `radial-gradient`, `filter: blur(80px)`).
 - Logo + "boucle" wordmark (gold) centered or left-aligned.
-- Headline: "Construire un produit est un jeu d'enfant" — display font, fluid size.
-- Subheadline: "De un ticket dans votre forge à une feature en production. boucle travaille pendant que vous dormez, vous intervenez aux points de décision."
+- Headline: "Great ideas deserve to ship." — display font, fluid size.
+- Subheadline: "From a ticket in your forge to a feature in production. Boucle works so you can live. You decide at the key moments, nothing else. 👍👎"
 - **Forge badges** — a row of "GitHub" and "GitLab" badges directly under the
   subheadline. Each is a 6px-radius chip on `--surface-raised` with a neutral
   `--border-neutral` border, a `--shadow-subtle`, a small 16px inline SVG mark,
@@ -224,8 +224,7 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 - **Language:** French for the main marketing copy (headline, subheadline, CTAs).
   Technical terms and code stay in English. Section titles can be French or English.
-- **Tone:** Futuristic but accessible. Not elitist, not jargon-heavy. "Jeu d'enfant"
-  sets the tone — powerful but simple.
+- **Tone:** Futuristic but accessible. Not elitist, not jargon-heavy. "Great ideas deserve to ship." sets the tone — powerful but simple.
 - **No stock photos.** The design is geometric, typographic, CSS-driven. The only
   visual element is the logo (SVG) and geometric shapes/gradients.
 - **No emoji in headlines** (except the ➰ loop mark in the logo area).
