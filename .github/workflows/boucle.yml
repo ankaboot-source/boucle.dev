@@ -565,6 +565,8 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
       - name: Deploy
         run: |
           export BOUCLE_PROJECT_ID="${{ github.repository }}"
