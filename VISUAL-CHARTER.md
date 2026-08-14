@@ -78,7 +78,7 @@ readability or WCAG 2.1 AA contrast.
 
 - 8px base grid. Sections: `padding: clamp(3rem, 8vw, 6rem) 1.5rem`.
 - Container max-width: `1100px`, centered.
-- Single page, vertical scroll, mobile-first. Sections: Hero → How it works → Why boucle → Quick start → Footer. No navigation bar.
+- Single page, vertical scroll, mobile-first. Sections: Hero → How it works → Lives in your forge → Why boucle → Quick start → Footer. No navigation bar.
 - Responsive breakpoints: mobile (under 768px), tablet (768–1024px), desktop (over 1024px).
 - Grid: CSS Grid for multi-column layouts, Flexbox for component internals.
 
@@ -148,12 +148,28 @@ reinforce the afrofuturist identity without overwhelming the layout:
 - Connected by a faint gold dotted line (the "loop").
 - Matches the README mermaid diagram but simplified for a landing page.
 
+### Lives in your forge
+
+- Dedicated section between "How it works" and "Why boucle", background
+  `--surface-base` (continuous with How it works; Why boucle follows in
+  `--bg-secondary` per the alternating rhythm).
+- Short promise line (display font, `--text-primary`): "boucle lives in your
+  forge. GitHub, GitLab. No external tool, no dashboard."
+- GitHub and GitLab logos side by side on ≥768px (centered, `gap: 3rem`),
+  stacked vertically and centered below 768px. Large but proportionate
+  (`clamp(120px, 20vw, 180px)` wide).
+- Logos are **inline SVG**, single-color via `currentColor` (white on dark),
+  each carrying `role="img"` and a descriptive `aria-label` ("GitHub logo",
+  "GitLab logo"). No raster images.
+- Each logo links to its forge (github.com / gitlab.com); hover shifts to gold.
+
 ### Why boucle
 
 - 5 promise cards, dark panels with subtle gold border.
 - First card ("Lives in your forge") is the featured/prominent card — it spans
   the full width of the card grid and gets a distinct gold treatment (gold
-  border + glow) to mark it as the key differentiator.
+  border + glow) to mark it as the key differentiator. It links to the
+  dedicated `#lives-in-your-forge` section.
 - Remaining 4 cards ("Deterministic and reliable", "Works while you sleep",
   "No UI, No CLI", "Self-healing, self-learning loop") display in a 2×2 grid on
   tablet/desktop, stacked on mobile.
@@ -194,7 +210,7 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 - All icons are geometric inline SVGs (stroke-based, 1.5px, `currentColor`),
   matching the logo's abstract geometric style.
-- Icon set: loop/issue, spec, implement, deploy, plus small meta icons (docs, GitHub, lock).
+- Icon set: loop/issue, spec, implement, deploy, plus small meta icons (docs, GitHub, lock) and the forge logos (GitHub, GitLab) in the "Lives in your forge" section.
 - Icons use `--accent-gold` or `--text-secondary`; violet is reserved for ambient
   glow, never on icons themselves.
 

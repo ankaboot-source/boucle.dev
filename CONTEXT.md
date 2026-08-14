@@ -61,6 +61,11 @@ dogfood consumer of the engine.
 
 ## 6. Content
 
+- **Page sections** (landing, top to bottom): Hero → How it works → Lives in
+  your forge → Why boucle → Quick start → Footer.
+- **Lives in your forge** — dedicated section between "How it works" and "Why
+  boucle" featuring GitHub and GitLab inline SVG logos and the promise "boucle
+  lives in your forge. GitHub, GitLab. No external tool, no dashboard."
 - **Five promises** (Why boucle): Lives in your forge, Deterministic and
   reliable, Works while you sleep, No UI No CLI, Self-healing self-learning
   loop.
