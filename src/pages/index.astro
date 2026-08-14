@@ -5,7 +5,7 @@
 // English copy (public, global audience). Self-hosted fonts (no CDN, GDPR).
 const title = 'boucle — zero-code autonomous product builder';
 const description =
-  "Building a product is child's play. From a ticket in your forge to a feature in production. No UI, no agent running on your machine.";
+  "Building a product is child's play. From a ticket in your forge to a feature in production. boucle works while you sleep, you intervene at decision points.";
 ---
 
 <!doctype html>
@@ -394,6 +394,18 @@ const description =
         font-family: var(--font-mono);
       }
 
+      /* Featured promise — "Lives in your forge", the key differentiator.
+         Spans the full card grid width and gets a distinct gold treatment. */
+      .card--featured {
+        grid-column: 1 / -1;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px var(--accent), 0 0 24px var(--glow-gold);
+        padding: 2.25rem;
+      }
+      .card--featured h3 {
+        font-size: 1.5rem;
+      }
+
       /* ============ QUICK START ============ */
       .quick {
         background: var(--surface-base);
@@ -482,7 +494,6 @@ const description =
           grid-template-columns: repeat(3, 1fr);
         }
       }
-
       @media (min-width: 1024px) {
         .steps {
           grid-template-columns: repeat(4, 1fr);
@@ -510,7 +521,7 @@ const description =
           margin: 0 auto;
         }
         .cards {
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(2, 1fr);
         }
       }
 
@@ -573,8 +584,8 @@ const description =
 
           <h1>Building a product is child's play</h1>
           <p class="hero-sub">
-            From a ticket in your forge to a feature in production. No UI,
-            no agent running on your machine.
+            From a ticket in your forge to a feature in production. boucle
+            works while you sleep, you intervene at decision points.
           </p>
 
           <div class="hero-ctas">
@@ -651,36 +662,43 @@ const description =
         <div class="container">
           <h2 id="why-title">Why boucle</h2>
           <p class="section-sub">
-            Powerful but simple. You stay in control, without installing anything.
+            Powerful but simple. Five promises, one loop.
           </p>
 
           <div class="cards">
-            <div class="card">
-              <h3>No UI needed</h3>
-              <p class="pain">A new app to learn, a dashboard to babysit.</p>
+            <div class="card card--featured">
+              <h3>Lives in your forge</h3>
+              <p class="pain">A new tool to learn, a dashboard to babysit.</p>
               <p class="arrow">→</p>
-              <p class="answer">boucle lives in your forge. No new interface, no server.</p>
+              <p class="answer">boucle lives in your forge (GitHub/GitLab). No external tool, no separate dashboard. Everything happens where you already work.</p>
             </div>
 
             <div class="card">
-              <h3>No agent running overnight</h3>
-              <p class="pain">A daemon to babysit, a laptop left on all night.</p>
-              <p class="arrow">→</p>
-              <p class="answer">The loop runs on your forge's CI. Nothing to install, nothing to restart.</p>
-            </div>
-
-            <div class="card">
-              <h3>You stay in control</h3>
+              <h3>Deterministic and reliable</h3>
               <p class="pain">An agent that decides everything, with no human review.</p>
               <p class="arrow">→</p>
-              <p class="answer">Two human gates: you approve the spec and you approve the MR.</p>
+              <p class="answer">Deterministic, therefore reliable. You intervene at the right moment, at the decision points.</p>
             </div>
 
             <div class="card">
-              <h3>Open-source &amp; open-weight</h3>
-              <p class="pain">A proprietary black box, your data with a third party.</p>
+              <h3>Works while you sleep</h3>
+              <p class="pain">A daemon to babysit, a laptop left on all night.</p>
               <p class="arrow">→</p>
-              <p class="answer">Your code, your data, your tokens stay yours. AGPL-3.0.</p>
+              <p class="answer">The agent works overnight for you. You intervene only when it matters.</p>
+            </div>
+
+            <div class="card">
+              <h3>No UI, No CLI</h3>
+              <p class="pain">A new interface to learn, a command line to master.</p>
+              <p class="arrow">→</p>
+              <p class="answer">No interface to learn, no command line to master. You interact through your forge: issues, comments, labels.</p>
+            </div>
+
+            <div class="card">
+              <h3>Self-healing, self-learning loop</h3>
+              <p class="pain">A static tool that never improves.</p>
+              <p class="arrow">→</p>
+              <p class="answer">A loop that learns from its mistakes, self-updates, and adapts to your codebase as your project advances.</p>
             </div>
           </div>
         </div>
