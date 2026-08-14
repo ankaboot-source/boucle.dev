@@ -591,6 +591,89 @@ const description =
         background: var(--accent);
       }
 
+      /* ============ VALIDATION FLOW ANIMATIONS ============ */
+      /* Subtle gestures that bring the validation cycle to life.
+         CSS-only, sequenced: thumb-up → verdict → deploy.
+         The ambient loop pulse runs continuously in the hero. */
+      .flow-thumb {
+        animation: flow-fade-in-up 0.6s ease-out 0.3s both;
+      }
+      .flow-verdict {
+        animation: flow-fade-in 0.6s ease-out 1s both;
+      }
+      .mock-deploy {
+        display: block;
+        height: 6px;
+        margin: 0.6rem 0;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--surface-raised);
+      }
+      .mock-deploy-fill {
+        display: block;
+        height: 100%;
+        transform-origin: left;
+        transform: scaleX(0);
+        background: var(--accent);
+        border-radius: 999px;
+        animation: deploy-fill 0.6s ease-out 1.7s both;
+      }
+      .mock-deploy-label {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin-top: 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .mock-deploy-check {
+        width: 11px;
+        height: 11px;
+        flex: none;
+        color: var(--accent);
+        animation: flow-fade-in 0.5s ease-out 2.1s both;
+      }
+      .loop-pulse {
+        animation: loop-pulse 3s ease-in-out infinite;
+      }
+      @keyframes flow-fade-in-up {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes flow-fade-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes deploy-fill {
+        from {
+          transform: scaleX(0);
+        }
+        to {
+          transform: scaleX(1);
+        }
+      }
+      @keyframes loop-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.45;
+        }
+      }
+
       /* ============ LIVES IN YOUR FORGE ============ */
       .forge {
         background: var(--surface-base);
@@ -897,8 +980,8 @@ const description =
               <!-- Sunglasses: afrofuturist gold visor -->
               <rect x="36" y="44" width="28" height="10" rx="5" fill="var(--accent, #f5c842)" />
               <!-- Infinity loop (∞) woven into the visor bridge -->
-              <circle cx="46" cy="49" r="3.5" fill="var(--surface-base, #0d1117)" />
-              <circle cx="54" cy="49" r="3.5" fill="var(--surface-base, #0d1117)" />
+              <circle class="loop-pulse" cx="46" cy="49" r="3.5" fill="var(--surface-base, #0d1117)" />
+              <circle class="loop-pulse" cx="54" cy="49" r="3.5" fill="var(--surface-base, #0d1117)" />
               <!-- Créoles: gold hoop earrings (dark rings = hoop openings) -->
               <circle cx="30" cy="62" r="5" stroke="var(--surface-base, #0d1117)" stroke-width="2.5" />
               <circle cx="70" cy="62" r="5" stroke="var(--surface-base, #0d1117)" stroke-width="2.5" />
@@ -1029,7 +1112,7 @@ const description =
                 </div>
                 <div class="mock-body" aria-hidden="true">
                   <div class="mock-reactions">
-                    <span class="mock-reaction mock-reaction--active">👍 1</span>
+                    <span class="mock-reaction mock-reaction--active flow-thumb">👍 1</span>
                     <span class="mock-reaction">👀 1</span>
                   </div>
                   <p class="mock-hint">Réaction ajoutée : boucle démarre.</p>
@@ -1087,7 +1170,7 @@ const description =
                 </div>
                 <div class="mock-body" aria-hidden="true">
                   <p class="mock-pr-title">Pull request — mode sombre</p>
-                  <div class="mock-verdict mock-verdict--pass">PASS</div>
+                  <div class="mock-verdict mock-verdict--pass flow-verdict">PASS</div>
                   <p class="mock-comment">Vérifié : le rendu correspond au spec. Prêt à fusionner.</p>
                 </div>
               </div>
@@ -1114,6 +1197,15 @@ const description =
                 </div>
                 <div class="mock-body" aria-hidden="true">
                   <p class="mock-pr-title">Pull request — mode sombre</p>
+                  <div class="mock-deploy" aria-hidden="true">
+                    <span class="mock-deploy-fill"></span>
+                  </div>
+                  <p class="mock-deploy-label" aria-hidden="true">
+                    <svg class="mock-deploy-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                      <path d="M4 12l5 5L20 6" />
+                    </svg>
+                    Feature déployée
+                  </p>
                   <div class="mock-verdict mock-verdict--merged">MERGED</div>
                   <p class="mock-badge mock-badge--live">● Live en production</p>
                 </div>
