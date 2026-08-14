@@ -101,8 +101,17 @@ readability or WCAG 2.1 AA contrast.
 
 - Subtle ambient glow pulse on the hero (violet/gold, 4s ease-in-out infinite).
 - Fade-in-up on scroll reveal (`opacity 0→1`, `translateY(20px→0)`, 0.6s ease).
+- **Validation-flow animations** (the "flux des choses qui se valident" in the
+  How it works mocks) — CSS-only, sequenced thumb-up → verdict → deploy, each
+  0.5–0.6s `ease-out` with a staggered delay (0.3s thumb, 1s verdict, 1.7–2.1s
+  deploy). The deploy uses a progress `scaleX(0→1)` fill plus a checkmark fade.
+- **Ambient loop pulse** — the ∞ motif in the hero visor breathes via a 3s
+  `ease-in-out infinite` opacity pulse (1→0.45→1), evoking the cyclical loop.
 - No parallax, no spin, no bounce — calm, not flashy.
-- `prefers-reduced-motion: reduce` → all animations disabled.
+- `prefers-reduced-motion: reduce` → all animations disabled; the global
+  reduced-motion block (`animation-duration: 0.01ms !important`,
+  `animation-iteration-count: 1 !important` on `*`) covers every new
+  animation, which snaps to its final visible state with no motion.
 
 ## 4. Components
 
