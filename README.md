@@ -1,5 +1,7 @@
 # boucle.dev
 
+**Great ideas deserve to ship.**
+
 Landing page for **boucle** — a zero-code autonomous product builder. From a
 ticket in your forge to a feature in production, without running agents on your
 own machine.
