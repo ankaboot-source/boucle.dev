@@ -143,8 +143,20 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 ### How it works
 
-- 4-step horizontal/vertical flow (mobile-first): Issue → Spec → Implement → Deploy.
-- Each step: icon (geometric SVG), title, one-sentence description.
+- 6-step flow (mobile-first vertical, then 2-col ≥768px, 3-col ≥1024px):
+  1. Je droppe mon idée dans une issue
+  2. Je reçois une proposition avec une image
+  3. Je valide avec un pouce
+  4. Ça bosse
+  5. C'est vérifié
+  6. Je valide, c'est live
+- Each step: icon (geometric SVG), first-person narrative title, one-sentence
+  description, and a forge mini-mockup (issue card, comment with preview,
+  reaction emoji, working status, PR verdict, merged/live badge).
+- Mockups are pure HTML/CSS (no external images): a browser-style bar with
+  dots + URL, a body using `--surface-raised`/`--bg-secondary` and
+  `--text-primary`/`--text-secondary`. Decorative internals are `aria-hidden`;
+  each mock has a `role="img"` + `aria-label` description.
 - Connected by a faint gold dotted line (the "loop").
 - Matches the README mermaid diagram but simplified for a landing page.
 
