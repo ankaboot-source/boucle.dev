@@ -34,7 +34,7 @@ on:
   pull_request_review_comment:
     types: [created]
   push:
-    branches: [main]
+    branches: [$BOUCLE_DEFAULT_BRANCH]
   schedule:
     - cron: "*/10 * * * *"  # doctor runs every 10 min
   workflow_dispatch:
@@ -565,8 +565,6 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
       - name: Deploy
         run: |
           export BOUCLE_PROJECT_ID="${{ github.repository }}"
