@@ -30,10 +30,10 @@ is child's play. The tone is futuristic but accessible, not elitist.
 | `--surface-base` | `#0a0a12` | Deep space black (base background) |
 | `--bg-secondary` | `#12121f` | Panel/card background |
 | `--surface-raised` | `#1a1a2e` | Elevated surface (code blocks, tooltips) |
-| `--accent` | `#f5c842` | Boucle d'or gold — primary accent (CTA, highlights, logo) |
+| `--accent` | `#f5c842` | Boucle d'or gold — primary accent (CTA, highlights, logo, afro, créoles, visor) |
 | `--accent-gold-dim` | `#c9a233` | Hover/active state for gold |
-| `--accent-violet` | `#7b2ff7` | Afro-futurist violet (secondary accent — gradients, glow) |
-| `--accent-cyan` | `#00e5ff` | Futuristic cyan (tertiary accent — links, tech details) |
+| `--accent-violet` | `#7b2ff7` | Afro-futurist violet (secondary accent — gradients, glow, motif bands) |
+| `--accent-cyan` | `#00e5ff` | Futuristic cyan (tertiary accent — links, tech details, motif bands) |
 | `--text-primary` | `#f0f0f5` | Off-white (body text) |
 | `--text-secondary` | `#a0a0b8` | Muted text (descriptions, meta) |
 | `--text-gold` | `#f5c842` | Gold text (emphasis, logo) |
@@ -46,9 +46,29 @@ is child's play. The tone is futuristic but accessible, not elitist.
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--font-display` | `'Space Grotesk', 'Inter', sans-serif` | Headlines, hero, logo |
-| `--font-body` | `'Inter', system-ui, sans-serif` | Body text, descriptions |
-| `--font-mono` | `'JetBrains Mono', monospace` | Code snippets, technical labels |
+| `--font-display` | `'Unbounded', 'Sora', sans-serif` | Headlines, hero, logo |
+| `--font-body` | `'Sora', system-ui, sans-serif` | Body text, descriptions |
+| `--font-mono` | `'Space Mono', monospace` | Code snippets, technical labels |
+
+**Font reevaluation (afrofuturist direction).** The previous stack (Space Grotesk /
+Inter / JetBrains Mono) is competent but reads as generic western tech. It is
+replaced with a more geometric, afrofuturist-leaning system while keeping
+legibility and professionalism:
+
+- **Unbounded** (display) — a wide, geometric, futuristic display face with a
+  strong African-adjacent geometric character (rounded, bold, sculptural). It
+  carries the afrofuturist "futurism + African culture" fusion in headlines and
+  the wordmark. Variable font (wght 200–900), self-hosted as a single woff2.
+- **Sora** (body) — a clean, geometric sans with a slightly rounded, warm
+  character that stays professional and highly legible at body sizes. Variable
+  font (wght 400–800), self-hosted as a single woff2.
+- **Space Mono** (mono) — a distinctive, technical monospace that keeps code
+  snippets readable while adding a futuristic edge. Static, self-hosted.
+
+All fonts are self-hosted (no Google Fonts CDN — GDPR). The change is justified:
+Unbounded and Sora are more geometric and less "default western tech" than
+Space Grotesk/Inter, reinforcing the afrofuturist identity without sacrificing
+readability or WCAG 2.1 AA contrast.
 
 - Display: 700 weight for hero, 600 for section titles.
 - Body: 400 weight, 1.6 line-height.
@@ -79,16 +99,37 @@ is child's play. The tone is futuristic but accessible, not elitist.
 
 ### Logo
 
-The boucle logo is **a silhouette of a girl's head with afro hair in gold/blond** —
-an abstract, geometric icon (not a realistic portrait). The afro is rendered as
-a circular/bouclé form (referencing "boucle d'or" / Goldilocks), the face is a
-minimal geometric profile. The logo is a single-color SVG using `--accent-gold`
-on dark backgrounds.
+The boucle logo is a **figurative afrofuturist face**: a face with a **golden
+afro** (the full gold circle = the "boucle" / boucle d'or), **gold hoop créoles**
+(earrings), and an **afrofuturist gold visor** (sunglasses) with the **infinity
+loop (∞)** woven into the visor bridge. It is a single-color SVG using
+`--accent` (gold) on `--surface-base` (dark) backgrounds.
 
-The worker should generate the logo as an inline SVG in the Astro component —
-geometric, abstract, not a photo or raster image. The afro hair forms a full
-circle around the head silhouette, evoking both a boucle (loop) and natural
-hair.
+The logo is generated as an **inline SVG** in the Astro component — figurative
+but sober and professional, not a caricatural illustration. It carries
+`role="img"` and a descriptive `aria-label` (e.g. "boucle logo — afrofuturist
+face with golden afro, créoles, and sunglasses"). All fills use the charter
+tokens with a literal fallback (`var(--accent, #f5c842)`) so the logo never
+renders blank without `var()` support. No raster image data.
+
+A matching standalone `public/favicon.svg` reuses the same face, simplified so
+the afro circle, face, and visor remain distinguishable at 32×32 (créoles and
+infinity may simplify but the silhouette stays recognizable).
+
+### Decorative motifs
+
+Subtle African-inspired geometric motifs (kente, adinkra, Sahelian patterns)
+reinforce the afrofuturist identity without overwhelming the layout:
+
+- **Kente/adinkra band** — a thin horizontal repeating band of gold / violet /
+  cyan stripes (a `repeating-linear-gradient`), used at the base of the hero.
+  Low opacity (≈0.35), edge-faded with a mask, `aria-hidden`, no motion.
+- **Usage rules** — motifs are decorative only, never interactive, never
+  animated, and always `aria-hidden`. They use the existing accent tokens
+  (gold leads, violet/cyan support) and stay subtle (low opacity, small
+  footprint). They must not reduce text contrast or readability.
+- **Reduced motion** — motifs carry no animation, so `prefers-reduced-motion`
+  is naturally satisfied.
 
 ### Hero
 
