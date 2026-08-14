@@ -34,7 +34,7 @@ Four steps, one loop. You stay in your forge, boucle does the rest.
 One command, and the loop takes over.
 
 ```sh
-curl -fsSL https://boucle.dev/install.sh | bash
+curl -fsSL https://ankaboot-source.github.io/boucle.dev/install.sh | bash
 ```
 
 Then create an issue in your forge and tag it `boucle:triage` — the loop starts.

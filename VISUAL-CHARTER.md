@@ -177,7 +177,7 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 ### Quick start
 
-- Minimal: a single `curl -fsSL https://boucle.dev/install.sh | bash` oneliner.
+- Minimal: a single `curl -fsSL https://ankaboot-source.github.io/boucle.dev/install.sh | bash` oneliner.
 - Code snippet in `--font-mono` on `--surface-raised` background.
 - Below the oneliner, a visually distinct transition panel (gold border +
   `--bg-secondary` background + gold glow) instructing "Create an issue in
