@@ -34,7 +34,7 @@ on:
   pull_request_review_comment:
     types: [created]
   push:
-    branches: [$BOUCLE_DEFAULT_BRANCH]
+    branches: [main]
   schedule:
     - cron: "*/10 * * * *"  # doctor runs every 10 min
   workflow_dispatch:
