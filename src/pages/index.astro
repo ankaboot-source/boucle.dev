@@ -1,18 +1,734 @@
 ---
-// Minimal placeholder — the worker will implement the full landing page.
-// This exists so the build succeeds on the first CI run.
+// boucle.dev — landing page
+// Afro-futurist + Goldilocks. Single-page static site, no raster images.
+// Conforms to VISUAL-CHARTER.md (tokens, components, content directives).
+// English copy (public, global audience). Self-hosted fonts (no CDN, GDPR).
 const title = 'boucle — zero-code autonomous product builder';
+const description =
+  "Building a product is child's play. From a ticket in your forge to a feature in production. No UI, no agent running on your machine.";
 ---
 
 <!doctype html>
-<html lang="fr">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
-    <meta name="description" content="Construire un produit est un jeu d'enfant. De un ticket dans votre forge à une feature en production." />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#0a0a12" />
+    <style>
+      /* Self-hosted fonts — no Google Fonts CDN (GDPR). */
+      @font-face {
+        font-family: 'Space Grotesk';
+        font-style: normal;
+        font-weight: 500;
+        font-display: swap;
+        src: url('/boucle.dev/fonts/space-grotesk-500.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Space Grotesk';
+        font-style: normal;
+        font-weight: 600;
+        font-display: swap;
+        src: url('/boucle.dev/fonts/space-grotesk-600.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Space Grotesk';
+        font-style: normal;
+        font-weight: 700;
+        font-display: swap;
+        src: url('/boucle.dev/fonts/space-grotesk-700.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url('/boucle.dev/fonts/inter-400.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 500;
+        font-display: swap;
+        src: url('/boucle.dev/fonts/inter-500.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 600;
+        font-display: swap;
+        src: url('/boucle.dev/fonts/inter-600.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'JetBrains Mono';
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url('/boucle.dev/fonts/jetbrains-mono-400.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'JetBrains Mono';
+        font-style: normal;
+        font-weight: 500;
+        font-display: swap;
+        src: url('/boucle.dev/fonts/jetbrains-mono-500.woff2') format('woff2');
+      }
+
+      :root {
+        --surface-base: #0a0a12;
+        --bg-secondary: #12121f;
+        --surface-raised: #1a1a2e;
+        --accent: #f5c842;
+        --accent-gold-dim: #c9a233;
+        --accent-violet: #7b2ff7;
+        --accent-cyan: #00e5ff;
+        --text-primary: #f0f0f5;
+        --text-secondary: #a0a0b8;
+        --text-gold: #f5c842;
+        --border: rgba(245, 200, 66, 0.15);
+        --glow-gold: rgba(245, 200, 66, 0.3);
+        --glow-violet: rgba(123, 47, 247, 0.25);
+        --font-display: 'Space Grotesk', 'Inter', sans-serif;
+        --font-body: 'Inter', system-ui, sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background: var(--surface-base);
+        color: var(--text-primary);
+        font-family: var(--font-body);
+        font-size: 1rem;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Skip link for keyboard users */
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        z-index: 100;
+        padding: 0.75rem 1.25rem;
+        background: var(--accent);
+        color: var(--surface-base);
+        font-weight: 600;
+        text-decoration: none;
+        border-radius: 999px;
+      }
+      .skip-link:focus {
+        left: 1rem;
+        top: 1rem;
+      }
+
+      a {
+        color: var(--accent-cyan);
+      }
+      a:hover {
+        color: var(--accent);
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+      }
+
+      section {
+        padding: clamp(3rem, 8vw, 6rem) 1.5rem;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-family: var(--font-display);
+        margin: 0 0 1rem;
+        line-height: 1.15;
+      }
+
+      h2 {
+        font-size: clamp(1.8rem, 4vw, 3rem);
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .section-sub {
+        text-align: center;
+        color: var(--text-secondary);
+        max-width: 640px;
+        margin: 0 auto 3rem;
+      }
+
+      /* ============ HERO ============ */
+      .hero {
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        overflow: hidden;
+        background: linear-gradient(180deg, var(--surface-base), var(--bg-secondary));
+        padding: 4rem 1.5rem;
+      }
+
+      .hero-glow {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        pointer-events: none;
+        animation: glow-pulse 4s ease-in-out infinite;
+      }
+      .hero-glow--violet {
+        width: 480px;
+        height: 480px;
+        background: var(--glow-violet);
+        top: -120px;
+        left: -120px;
+      }
+      .hero-glow--gold {
+        width: 420px;
+        height: 420px;
+        background: var(--glow-gold);
+        bottom: -140px;
+        right: -120px;
+        animation-delay: 2s;
+      }
+
+      @keyframes glow-pulse {
+        0%,
+        100% {
+          opacity: 0.5;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.08);
+        }
+      }
+
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+        max-width: 760px;
+      }
+
+      .logo-lockup {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 2rem;
+      }
+      .logo-lockup svg {
+        width: 56px;
+        height: 56px;
+      }
+      .wordmark {
+        font-family: var(--font-display);
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-gold);
+        letter-spacing: 0.02em;
+      }
+
+      .hero h1 {
+        font-size: clamp(2.5rem, 6vw, 4.5rem);
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+      }
+
+      .hero-sub {
+        font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+        color: var(--text-secondary);
+        max-width: 620px;
+        margin: 0 auto 2.5rem;
+      }
+
+      .hero-ctas {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 0.85rem 1.75rem;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1.05rem;
+        text-decoration: none;
+        border-radius: 999px;
+        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+      }
+      .btn--primary {
+        background: var(--accent);
+        color: var(--surface-base);
+      }
+      .btn--primary:hover {
+        background: var(--accent-gold-dim);
+        color: var(--surface-base);
+      }
+      .btn--ghost {
+        border: 1px solid var(--border);
+        color: var(--text-primary);
+      }
+      .btn--ghost:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      /* ============ HOW IT WORKS ============ */
+      .how {
+        background: var(--surface-base);
+      }
+
+      .steps {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+        margin-top: 2rem;
+      }
+
+      /* The "boucle" — a visible gold dotted connector line.
+         Vertical on mobile, horizontal on desktop. */
+      .steps::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 28px;
+        width: 0;
+        border-left: 2px dashed var(--accent);
+        opacity: 0.55;
+      }
+
+      .step {
+        position: relative;
+        display: flex;
+        gap: 1.25rem;
+        align-items: flex-start;
+        padding-left: 0;
+      }
+
+      .step-icon {
+        flex: 0 0 auto;
+        width: 56px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 0;
+        color: var(--accent);
+      }
+      .step-icon svg {
+        width: 28px;
+        height: 28px;
+      }
+
+      .step-body h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0 0 0.35rem;
+      }
+      .step-body p {
+        margin: 0;
+        color: var(--text-secondary);
+      }
+
+      /* ============ WHY BOUCLE ============ */
+      .why {
+        background: var(--bg-secondary);
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        margin-top: 2rem;
+      }
+
+      .card {
+        background: var(--surface-base);
+        border: 1px solid var(--border);
+        border-radius: 0;
+        padding: 1.75rem;
+      }
+      .card h3 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--accent);
+        margin-bottom: 0.75rem;
+      }
+      .card .pain {
+        color: var(--text-secondary);
+        margin: 0 0 0.5rem;
+      }
+      .card .answer {
+        color: var(--text-primary);
+        margin: 0;
+      }
+      .card .arrow {
+        color: var(--accent-violet);
+        margin: 0 0 0.5rem;
+        font-family: var(--font-mono);
+      }
+
+      /* ============ QUICK START ============ */
+      .quick {
+        background: var(--surface-base);
+      }
+
+      .quick-steps {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        margin-top: 2rem;
+      }
+
+      .quick-step {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 0;
+        padding: 1.5rem;
+      }
+      .quick-step .num {
+        font-family: var(--font-mono);
+        color: var(--accent);
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+      }
+      .quick-step p {
+        margin: 0 0 0.75rem;
+        color: var(--text-primary);
+      }
+      .code {
+        background: var(--surface-raised);
+        border-radius: 0;
+        padding: 0.9rem 1rem;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: var(--accent-cyan);
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+      }
+
+      .quick-link {
+        display: inline-block;
+        margin-top: 2rem;
+        font-weight: 600;
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .quick-link:hover {
+        color: var(--accent-gold-dim);
+      }
+
+      /* ============ FOOTER ============ */
+      footer {
+        background: var(--surface-base);
+        border-top: 1px solid var(--border);
+        padding: 2.5rem 1.5rem;
+        text-align: center;
+      }
+      .footer-made {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin: 0 0 1rem;
+      }
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        justify-content: center;
+        font-size: 0.9rem;
+      }
+      .footer-links a {
+        color: var(--text-secondary);
+        text-decoration: none;
+      }
+      .footer-links a:hover {
+        color: var(--accent);
+      }
+
+      /* ============ RESPONSIVE ============ */
+      @media (min-width: 768px) {
+        .cards {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .quick-steps {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .steps {
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1.5rem;
+        }
+        /* Horizontal dotted connector across the 4 steps */
+        .steps::before {
+          top: 28px;
+          bottom: auto;
+          left: 0;
+          right: 0;
+          width: auto;
+          height: 0;
+          border-left: none;
+          border-top: 2px dashed var(--accent);
+        }
+        .step {
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          padding: 0;
+        }
+        .step-body p {
+          max-width: 220px;
+          margin: 0 auto;
+        }
+        .cards {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+
+      /* ============ REDUCED MOTION ============ */
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+        .hero-glow {
+          animation: none;
+        }
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
   </head>
   <body>
-    <p>boucle.dev — landing page coming soon.</p>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <main id="main">
+      <!-- ============ HERO ============ -->
+      <section class="hero" aria-label="boucle — introduction">
+        <div class="hero-glow hero-glow--violet" aria-hidden="true"></div>
+        <div class="hero-glow hero-glow--gold" aria-hidden="true"></div>
+
+        <div class="hero-inner">
+          <div class="logo-lockup">
+            <!-- Geometric afro-futurist logo: girl's head with afro hair
+                 forming a full gold circle (the "boucle"). -->
+            <svg
+              viewBox="0 0 100 100"
+              role="img"
+              aria-label="boucle logo — silhouette of a girl with golden afro hair"
+              fill="none"
+            >
+              <!-- Afro: full gold circle -->
+              <circle cx="50" cy="50" r="46" fill="var(--accent)" />
+              <!-- Face: negative-space geometric profile -->
+              <path
+                d="M50 22
+                   a28 28 0 0 1 0 56
+                   a20 20 0 0 1 0 -40
+                   a12 12 0 0 0 0 24
+                   a8 8 0 0 0 0 -16
+                   a4 4 0 0 0 0 8
+                   a2 2 0 0 0 0 -4
+                   Z"
+                fill="var(--surface-base)"
+              />
+              <!-- Eye -->
+              <circle cx="58" cy="46" r="3" fill="var(--surface-base)" />
+            </svg>
+            <span class="wordmark">boucle</span>
+          </div>
+
+          <h1>Building a product is child's play</h1>
+          <p class="hero-sub">
+            From a ticket in your forge to a feature in production. No UI,
+            no agent running on your machine.
+          </p>
+
+          <div class="hero-ctas">
+            <a class="btn btn--primary" href="#quick-start">Get started</a>
+            <a class="btn btn--ghost" href="#how-it-works">How it works</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ HOW IT WORKS ============ -->
+      <section class="how" id="how-it-works" aria-labelledby="how-title">
+        <div class="container">
+          <h2 id="how-title">How it works</h2>
+          <p class="section-sub">
+            Four steps, one loop. You stay in your forge, boucle does the rest.
+          </p>
+
+          <div class="steps">
+            <div class="step">
+              <div class="step-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 3" />
+                </svg>
+              </div>
+              <div class="step-body">
+                <h3>Issue</h3>
+                <p>You create a ticket in your forge.</p>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 6h16M4 12h16M4 18h10" />
+                </svg>
+              </div>
+              <div class="step-body">
+                <h3>Spec</h3>
+                <p>boucle analyzes and writes the spec. You approve it.</p>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 3v12M7 8l5-5 5 5" />
+                  <path d="M4 21h16" />
+                </svg>
+              </div>
+              <div class="step-body">
+                <h3>Implement</h3>
+                <p>boucle implements and deploys a preview.</p>
+              </div>
+            </div>
+
+            <div class="step">
+              <div class="step-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 12l5 5L20 6" />
+                </svg>
+              </div>
+              <div class="step-body">
+                <h3>Deploy</h3>
+                <p>You approve the MR, the feature ships to production.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ WHY BOUCLE ============ -->
+      <section class="why" id="why-boucle" aria-labelledby="why-title">
+        <div class="container">
+          <h2 id="why-title">Why boucle</h2>
+          <p class="section-sub">
+            Powerful but simple. You stay in control, without installing anything.
+          </p>
+
+          <div class="cards">
+            <div class="card">
+              <h3>No UI needed</h3>
+              <p class="pain">A new app to learn, a dashboard to babysit.</p>
+              <p class="arrow">→</p>
+              <p class="answer">boucle lives in your forge. No new interface, no server.</p>
+            </div>
+
+            <div class="card">
+              <h3>No agent running overnight</h3>
+              <p class="pain">A daemon to babysit, a laptop left on all night.</p>
+              <p class="arrow">→</p>
+              <p class="answer">The loop runs on your forge's CI. Nothing to install, nothing to restart.</p>
+            </div>
+
+            <div class="card">
+              <h3>You stay in control</h3>
+              <p class="pain">An agent that decides everything, with no human review.</p>
+              <p class="arrow">→</p>
+              <p class="answer">Two human gates: you approve the spec and you approve the MR.</p>
+            </div>
+
+            <div class="card">
+              <h3>Open-source &amp; open-weight</h3>
+              <p class="pain">A proprietary black box, your data with a third party.</p>
+              <p class="arrow">→</p>
+              <p class="answer">Your code, your data, your tokens stay yours. AGPL-3.0.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ QUICK START ============ -->
+      <section class="quick" id="quick-start" aria-labelledby="quick-title">
+        <div class="container">
+          <h2 id="quick-title">Quick start</h2>
+          <p class="section-sub">
+            Three steps, and the loop takes over.
+          </p>
+
+          <div class="quick-steps">
+            <div class="quick-step">
+              <div class="num">01</div>
+              <p>Add boucle as a submodule.</p>
+              <pre class="code"><code>git submodule add https://github.com/ankaboot-source/boucle .boucle</code></pre>
+            </div>
+
+            <div class="quick-step">
+              <div class="num">02</div>
+              <p>Set everything up (idempotent).</p>
+              <pre class="code"><code>.boucle/bin/setup gitlab</code></pre>
+            </div>
+
+            <div class="quick-step">
+              <div class="num">03</div>
+              <p>Create an issue, the loop starts.</p>
+              <pre class="code"><code>Create an issue with the boucle:triage label</code></pre>
+            </div>
+          </div>
+
+          <a class="quick-link" href="https://github.com/ankaboot-source/boucle/blob/main/README.md">
+            View the docs →
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============ FOOTER ============ -->
+    <footer>
+      <p class="footer-made">Made in Africa 🌍 for the world</p>
+      <nav class="footer-links" aria-label="Footer links">
+        <a href="https://github.com/ankaboot-source/boucle">GitHub</a>
+        <a href="https://github.com/ankaboot-source/boucle/blob/main/LICENSE">License (AGPL-3.0)</a>
+        <a href="https://github.com/ankaboot-source/boucle/blob/main/README.md">Docs</a>
+      </nav>
+    </footer>
   </body>
 </html>
