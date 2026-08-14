@@ -15,7 +15,7 @@ const description =
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#0a0a12" />
+    <meta name="theme-color" content="#0d1117" />
     <link rel="icon" type="image/svg+xml" href="/boucle.dev/favicon.svg" />
     <style>
       /* Self-hosted fonts — no Google Fonts CDN (GDPR).
@@ -51,9 +51,11 @@ const description =
       }
 
       :root {
-        --surface-base: #0a0a12;
-        --bg-secondary: #12121f;
-        --surface-raised: #1a1a2e;
+        /* Forge surfaces — GitHub-dark-inspired (Primer Product UI), per VISUAL-CHARTER §2. */
+        --surface-base: #0d1117;
+        --bg-secondary: #161b22;
+        --surface-raised: #21262d;
+        /* Afro-futurist accents — preserved, unchanged. */
         --accent: #f5c842;
         --accent-gold-dim: #c9a233;
         --accent-violet: #7b2ff7;
@@ -62,10 +64,14 @@ const description =
         --text-secondary: #a0a0b8;
         --text-gold: #f5c842;
         --border: rgba(245, 200, 66, 0.15);
+        --border-neutral: rgba(255, 255, 255, 0.08);
         --glow-gold: rgba(245, 200, 66, 0.3);
         --glow-violet: rgba(123, 47, 247, 0.25);
+        /* Forge radii & shadows (Primer/Pajamas) */
+        --radius: 6px;
+        --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.3);
         --font-display: 'Unbounded', 'Sora', sans-serif;
-        --font-body: 'Sora', system-ui, sans-serif;
+        --font-body: system-ui, 'Sora', sans-serif;
         --font-mono: 'Space Mono', monospace;
       }
 
@@ -100,7 +106,7 @@ const description =
         color: var(--surface-base);
         font-weight: 600;
         text-decoration: none;
-        border-radius: 999px;
+        border-radius: var(--radius);
       }
       .skip-link:focus {
         left: 1rem;
@@ -260,6 +266,43 @@ const description =
         margin: 0 auto 2.5rem;
       }
 
+      /* Forge badges — "Lives in your forge" visual cue (Primer/Pajamas look:
+         6px radius, subtle neutral border, raised bg, small mono-ish font). */
+      .forge-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+        list-style: none;
+        margin: 0 auto 2.5rem;
+        padding: 0;
+      }
+      .forge-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.85rem;
+        background: var(--surface-raised);
+        border: 1px solid var(--border-neutral);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-subtle);
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-decoration: none;
+        transition: color 0.2s ease, border-color 0.2s ease;
+      }
+      .forge-badge:hover {
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      .forge-badge svg {
+        width: 16px;
+        height: 16px;
+        display: block;
+      }
+
       .hero-ctas {
         display: flex;
         flex-wrap: wrap;
@@ -274,7 +317,7 @@ const description =
         font-weight: 600;
         font-size: 1.05rem;
         text-decoration: none;
-        border-radius: 999px;
+        border-radius: var(--radius);
         transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
       }
       .btn--primary {
@@ -336,8 +379,8 @@ const description =
         align-items: center;
         justify-content: center;
         background: var(--bg-secondary);
-        border: 1px solid var(--border);
-        border-radius: 0;
+        border: 1px solid var(--border-neutral);
+        border-radius: var(--radius);
         color: var(--accent);
       }
       .step-icon svg {
@@ -407,8 +450,9 @@ const description =
 
       .card {
         background: var(--surface-base);
-        border: 1px solid var(--border);
-        border-radius: 0;
+        border: 1px solid var(--border-neutral);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-subtle);
         padding: 1.75rem;
       }
       .card h3 {
@@ -470,7 +514,7 @@ const description =
       }
       .code {
         background: var(--surface-raised);
-        border-radius: 0;
+        border-radius: var(--radius);
         padding: 0.9rem 1rem;
         font-family: var(--font-mono);
         font-size: 0.85rem;
@@ -489,7 +533,7 @@ const description =
         margin: 1.5rem auto 0;
         background: var(--bg-secondary);
         border: 1px solid var(--accent);
-        border-radius: 0;
+        border-radius: var(--radius);
         padding: 1.5rem;
         box-shadow: 0 0 24px var(--glow-gold);
       }
@@ -508,7 +552,7 @@ const description =
         color: var(--accent);
         background: var(--surface-raised);
         padding: 0.1rem 0.35rem;
-        border-radius: 0;
+        border-radius: var(--radius);
       }
 
       .quick-link {
@@ -643,16 +687,16 @@ const description =
                    L 66 44
                    C 66 36, 60 30, 50 30
                    Z"
-                fill="var(--surface-base, #0a0a12)"
+                fill="var(--surface-base, #0d1117)"
               />
               <!-- Sunglasses: afrofuturist gold visor -->
               <rect x="36" y="44" width="28" height="10" rx="5" fill="var(--accent, #f5c842)" />
               <!-- Infinity loop (∞) woven into the visor bridge -->
-              <circle cx="46" cy="49" r="3.5" fill="var(--surface-base, #0a0a12)" />
-              <circle cx="54" cy="49" r="3.5" fill="var(--surface-base, #0a0a12)" />
+              <circle cx="46" cy="49" r="3.5" fill="var(--surface-base, #0d1117)" />
+              <circle cx="54" cy="49" r="3.5" fill="var(--surface-base, #0d1117)" />
               <!-- Créoles: gold hoop earrings (dark rings = hoop openings) -->
-              <circle cx="30" cy="62" r="5" stroke="var(--surface-base, #0a0a12)" stroke-width="2.5" />
-              <circle cx="70" cy="62" r="5" stroke="var(--surface-base, #0a0a12)" stroke-width="2.5" />
+              <circle cx="30" cy="62" r="5" stroke="var(--surface-base, #0d1117)" stroke-width="2.5" />
+              <circle cx="70" cy="62" r="5" stroke="var(--surface-base, #0d1117)" stroke-width="2.5" />
             </svg>
             <span class="wordmark">boucle</span>
           </div>
@@ -662,6 +706,29 @@ const description =
             From a ticket in your forge to a feature in production. boucle
             works while you sleep, you intervene at decision points.
           </p>
+
+          <ul class="forge-badges" aria-label="Forge badges">
+            <li>
+              <a class="forge-badge" href="https://github.com">
+                <svg viewBox="0 0 24 24" role="img" aria-label="GitHub" fill="currentColor">
+                  <path
+                    d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.04-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.39 1.24-3.23-.13-.3-.54-1.53.11-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 3.01-.41c1.02 0 2.05.14 3.01.41 2.29-1.55 3.3-1.23 3.3-1.23.65 1.65.24 2.88.12 3.18.77.84 1.24 1.92 1.24 3.23 0 4.62-2.81 5.64-5.49 5.94.43.37.81 1.1.81 2.22 0 1.61-.02 2.9-.02 3.3 0 .32.22.7.83.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5Z"
+                  />
+                </svg>
+                GitHub
+              </a>
+            </li>
+            <li>
+              <a class="forge-badge" href="https://gitlab.com">
+                <svg viewBox="0 0 24 24" role="img" aria-label="GitLab" fill="currentColor">
+                  <path
+                    d="m23.6004 9.5927-.0337-.0862L20.3.9814a.851.851 0 0 0-.3362-.405.8748.8748 0 0 0-.9997.0539.8748.8748 0 0 0-.29.4399l-2.2055 6.748H7.5375l-2.2057-6.748a.8573.8573 0 0 0-.29-.4412.8748.8748 0 0 0-.9997-.0537.8585.8585 0 0 0-.3362.4049L.4332 9.5015l-.0325.0862a6.0657 6.0657 0 0 0 2.0119 7.0105l.0113.0087.03.0213 4.976 3.7264 2.462 1.8633a1.0287 1.0287 0 0 0 1.2197 0l2.462-1.8633 4.976-3.7264.0305-.0213.0113-.0087a6.0657 6.0657 0 0 0 2.0114-7.0086z"
+                  />
+                </svg>
+                GitLab
+              </a>
+            </li>
+          </ul>
 
           <div class="hero-ctas">
             <a class="btn btn--primary" href="#quick-start">Get started</a>

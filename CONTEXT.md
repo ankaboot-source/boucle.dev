@@ -43,7 +43,8 @@ dogfood consumer of the engine.
   adinkra / Sahelian geometric motifs, gold / violet / cyan accents on a
   deep space black base.
 - **Minimalism** — single page, no navigation bar, generous whitespace,
-  sharp corners on primary surfaces, pill CTAs. Dark theme only.
+  forge corner radius (6px) on all surfaces, GitHub-dark-inspired surfaces,
+  system-ui-first body type. Dark theme only.
 - The full design system lives in [VISUAL-CHARTER.md](VISUAL-CHARTER.md).
 
 ## 5. Constraints
