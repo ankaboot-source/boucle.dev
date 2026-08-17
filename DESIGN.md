@@ -1,4 +1,4 @@
-# VISUAL-CHARTER.md — boucle.dev
+# DESIGN.md — boucle.dev
 
 > The design system for the boucle.dev landing page. The worker reads this
 > before any UI work; it overrides generic design recommendations.

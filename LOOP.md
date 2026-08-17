@@ -89,7 +89,7 @@ Escalate to a human when:
 
 - `.boucle/` state files must not be deleted by agents.
 - Consumer-owned docs (`README.md`, `LOOP.md`, `CONTEXT.md`,
-  `VISUAL-CHARTER.md`) are NEVER overwritten by `bin/update`.
+  `DESIGN.md`) are NEVER overwritten by `bin/update`.
 
 ## See also
 
