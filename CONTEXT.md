@@ -45,7 +45,7 @@ dogfood consumer of the engine.
 - **Minimalism** — single page, no navigation bar, generous whitespace,
   forge corner radius (6px) on all surfaces, GitHub-dark-inspired surfaces,
   system-ui-first body type. Dark theme only.
-- The full design system lives in [VISUAL-CHARTER.md](VISUAL-CHARTER.md).
+- The full design system lives in [DESIGN.md](DESIGN.md).
 
 ## 5. Constraints
 
@@ -57,7 +57,7 @@ dogfood consumer of the engine.
 - **AGPL-3.0** — the site is licensed under AGPL-3.0 (see
   [README.md](README.md)).
 - **Consumer-owned docs** — `README.md`, `LOOP.md`, `CONTEXT.md`,
-  `VISUAL-CHARTER.md` are consumer-owned and NEVER overwritten by
+  `DESIGN.md` are consumer-owned and NEVER overwritten by
   `bin/update`.
 
 ## 6. Content
@@ -79,4 +79,4 @@ dogfood consumer of the engine.
 - [AGENTS.md](AGENTS.md) — Agent guide, mandatory principles
 - [LOOP.md](LOOP.md) — Per-consumer loop configuration
 - [README.md](README.md) — Overview, getting started, usage
-- [VISUAL-CHARTER.md](VISUAL-CHARTER.md) — Design system
+- [DESIGN.md](DESIGN.md) — Design system
