@@ -1,8 +1,8 @@
 ---
 // boucle.dev — landing page
-// Afro-futurist + Goldilocks. Single-page static site. The only raster assets
-// are the brand logo: a PNG poster (public/boucle-logo.png) and an animated
-// MP4 (public/boucle-logo.mp4) in the hero. Everything else is CSS/inline SVG.
+// Afro-futurist + Goldilocks. Single-page static site. The only raster asset
+// is the brand logo: an animated GIF
+// (public/boucle-logo.gif) in the hero. Everything else is CSS/inline SVG.
 // Conforms to DESIGN.md (tokens, components, content directives).
 // English copy (public, global audience). Self-hosted fonts (no CDN, GDPR).
 // All user-facing text is extracted to src/content/ collections (issue #39);
@@ -287,12 +287,11 @@ const description = hero.data.metaDescription;
         align-items: center;
         justify-content: center;
       }
-      .hero-logo-video video {
+      .hero-logo-video img {
         width: min(340px, 70vw);
         height: auto;
         border-radius: var(--radius);
         display: block;
-        box-shadow: 0 0 60px var(--glow-gold);
       }
 
       .hero h1 {
@@ -1209,11 +1208,6 @@ const description = hero.data.metaDescription;
         .hero-glow {
           animation: none;
         }
-        .hero-logo-video video {
-          /* Autoplaying logo animation is motion — pause it and show the static
-             PNG poster only when the user prefers reduced motion. */
-          animation: none;
-        }
         *,
         *::before,
         *::after {
@@ -1253,19 +1247,17 @@ const description = hero.data.metaDescription;
 
           <div class="hero-logo-video">
             <!-- Animated brand logo, shown large on its own standalone column
-                 (desktop). Decorative brand identity: aria-hidden, the static
-                 PNG poster shows before the video loads and when autoplay is
-                 blocked or reduced motion is preferred. -->
-            <video
-              autoplay
-              loop
-              muted
-              playsinline
+                 (desktop). Decorative brand identity: aria-hidden and empty alt
+                 so assistive tech skips it. Animated GIFs play natively and
+                 cannot be paused by prefers-reduced-motion. -->
+            <img
+              src="/boucle.dev/boucle-logo.gif"
+              width="540"
+              height="540"
+              alt=""
               aria-hidden="true"
-              poster="/boucle.dev/boucle-logo.png"
-            >
-              <source src="/boucle.dev/boucle-logo.mp4" type="video/mp4" />
-            </video>
+              decoding="async"
+            />
           </div>
         </div>
       </section>
@@ -1636,25 +1628,6 @@ const description = hero.data.metaDescription;
           }
         });
       });
-
-      // Reduced motion — the animated hero logo is decorative motion. If the
-      // user prefers reduced motion, remove autoplay so only the static PNG
-      // poster is shown (pausing on the first frame).
-      const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-      const heroVideos = document.querySelectorAll('.hero-logo-video video');
-      const setAutoplay = (prefersReduced) => {
-        heroVideos.forEach((video) => {
-          if (prefersReduced) {
-            video.removeAttribute('autoplay');
-            video.pause();
-          } else {
-            video.setAttribute('autoplay', '');
-            video.play().catch(() => {});
-          }
-        });
-      };
-      setAutoplay(motionQuery.matches);
-      motionQuery.addEventListener('change', (e) => setAutoplay(e.matches));
 
       // ============ HOW-IT-WORKS SLIDESHOW ============
       // Shows one step at a time, loops 7 -> 1, auto-advances every 5s when

@@ -31,7 +31,7 @@ dogfood consumer of the engine.
 | Layer | Technology |
 | --- | --- |
 | Framework | Astro (static site, single page) |
-| Language | HTML + CSS (inline in `src/pages/index.astro`) + inline SVG; the only raster assets are the brand logo (a PNG poster `public/boucle-logo.png` and an animated MP4 `public/boucle-logo.mp4` in the hero) |
+| Language | HTML + CSS (inline in `src/pages/index.astro`) + inline SVG; the only raster asset is the brand logo (an animated GIF `public/boucle-logo.gif` in the hero) |
 | Content | All user-facing text lives in Astro content collections (`src/content/`, schema in `src/content.config.ts`) — editable without touching HTML/CSS |
 | Fonts | Self-hosted: Unbounded (display), Sora (body), Space Mono (mono) |
 | Deploy | GitHub Pages (`gh-pages` branch, root) |
