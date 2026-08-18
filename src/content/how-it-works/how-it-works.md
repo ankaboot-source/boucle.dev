@@ -1,5 +1,5 @@
 ---
-title: How it works
+title: How boucle works
 sub: boucle lives in your forge. GitHub, GitLab. No external tool, no dashboard.
 logosAriaLabel: Supported forges
 githubSrc: /boucle.dev/github-logo.png

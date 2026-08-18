@@ -84,7 +84,7 @@ readability or WCAG 2.1 AA contrast.
 
 - 8px base grid. Sections: `padding: clamp(3rem, 8vw, 6rem) 1.5rem`.
 - Container max-width: `1100px`, centered.
-- Single page, vertical scroll, mobile-first. Sections: Hero → How it works → Lives in your forge → Why boucle → Quick start → Footer. No navigation bar.
+- Single page, vertical scroll, mobile-first. Sections: Hero → How boucle works → Lives in your forge → Why boucle → Quick start → Footer. No navigation bar.
 - Responsive breakpoints: mobile (under 768px), tablet (768–1024px), desktop (over 1024px).
 - Grid: CSS Grid for multi-column layouts, Flexbox for component internals.
 
@@ -182,7 +182,7 @@ reinforce the afrofuturist identity without overwhelming the layout:
 - CTA: "Get started" (gold button, 6px radius, links to quick start) + "How it works" (ghost link, 6px radius).
 - A subtle loop emoji ➰ or the logo mark as a visual anchor.
 
-### How it works
+### How boucle works
 
 - 7-step flow presented as a **single-step animated slideshow** (loop):
   1. Drop your idea in an issue
@@ -211,8 +211,8 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 ### Lives in your forge
 
-- Dedicated section between "How it works" and "Why boucle", background
-  `--surface-base` (continuous with How it works; Why boucle follows in
+- Dedicated section between "How boucle works" and "Why boucle", background
+  `--surface-base` (continuous with How boucle works; Why boucle follows in
   `--bg-secondary` per the alternating rhythm).
 - Short promise line (display font, `--text-primary`): "boucle lives in your
   forge. GitHub, GitLab. No external tool, no dashboard."
