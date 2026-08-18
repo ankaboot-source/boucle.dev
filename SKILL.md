@@ -137,7 +137,9 @@ owns both sides — the question is meaningless).
 
 **Removed (dead labels, pruned from `bin/setup`):** `boucle:approved`,
 `boucle:spec-approved`. MR approval uses the native forge Approve button; spec
-approval uses a reply/emoji on `boucle:spec-review`. Neither uses a label.
+approval uses a canonical emoji reaction (👍 ❤️ 🎉 🚀) on `boucle:spec-review`
+— a text reply amends the spec and re-triggers triage, it does NOT approve.
+Neither uses a label.
 
 ### 2.2 Gross labels
 
@@ -158,7 +160,8 @@ stateDiagram-v2
     triage --> human: Size L / unclear criteria / destructive
     triage --> split: issue too big, split into sub-issues
     needs_info --> triage: human replied (note on needs-info)
-    spec_review --> todo: human approved spec (note / 👍 emoji)
+    spec_review --> todo: human approved spec (👍 ❤️ 🎉 🚀 emoji)
+    spec_review --> triage: human replied with amendment (re-triage)
     spec_review --> human: human rejected / no response
     todo --> working: worker started
     working --> review: worker shipped code
@@ -268,6 +271,7 @@ harness MUST use the markers correctly or dispatch will misroute its writes.
 | `VERDICT: PASS\|FAIL\|UNCERTAIN` | line-anchored (`^VERDICT:`) | reviewer.sh:299,320,358,363; e2e.sh (same pattern) | The verdict line. MUST be start-of-line anchored in greps (LESSONS.yml lesson #41) — an unanchored grep matches shell traces containing the substring. |
 | `BOT_JUST_ASSIGNED` | assignee-change detection | dispatch.sh:504-539 | The real "re-queue after boucle:human" mechanism (§4.1). Detected from `.changes.assignees` on the `issue update` webhook, not from a comment. |
 | Emoji `thumbsup` `heart` `rocket` `tada` | emoji award on a Note | dispatch.sh (`BOUCLE_SPEC_APPROVAL_EMOJIS="thumbsup heart rocket tada"`) | Spec approval + needs-info re-trigger. Valid on an issue at `boucle:spec-review` (approve spec) or `boucle:needs-info` (re-trigger after action). MR approval is the native Approve button, NOT an emoji. |
+| Emoji `eyes` (👀) | emoji award on an **Issue** | written by triage.sh (`ack_issue_taken`, `BOUCLE_ACK_EMOJI="eyes"`); discarded by dispatch.sh | **Bot → human** acknowledgement: triage has picked the issue up. The only signal boucle writes as a reaction; deliberately outside the spec-approval set so it can never read as approval. Carries no routing meaning in either direction — dispatch skips issue-level 👀 events (§4.8). |
 
 ---
 
@@ -293,15 +297,23 @@ state. This is the explicit "reopen and resume" signal.
 **A local harness that wants to re-queue a `boucle:human` issue MUST
 re-assign the bot, not post a comment.** (LESSONS.yml lesson #11, #44.)
 
-### 4.2 Spec approval — reply or emoji
+### 4.2 Spec approval — emoji only; a reply amends
 
-To approve a spec (issue at `boucle:spec-review`), the human either:
-- posts a **non-bot note** on the issue (dispatch.sh:570-578), OR
-- awards a **`thumbsup` `heart` `rocket` or `tada` emoji** on a note
-  (dispatch.sh, gated by `BOUCLE_SPEC_APPROVAL_EMOJIS="thumbsup heart rocket tada"`).
+To approve a spec (issue at `boucle:spec-review`), the human awards a
+**`thumbsup` `heart` `rocket` or `tada` emoji** on the triage/spec-review
+note (dispatch.sh, gated by `BOUCLE_SPEC_APPROVAL_EMOJIS="thumbsup heart
+rocket tada"`). The emoji triggers `chain_to_role worker`. An emoji by the
+bot account is skipped — only human emoji count.
 
-Either triggers `chain_to_role worker`. A note by the bot account (carrying
-`<!-- boucle:agent -->`) is skipped — only human notes/emojis count.
+A **text reply is NOT an approval** — it is a correction/amendment. A reply
+re-triggers **triage** (`chain_to_role triage`), which re-reads the human's
+notes and posts an **updated spec** back at `boucle:spec-review` for another
+approval round. The triage validation message says so explicitly: *“A reply
+never approves the spec.”* A bot-authored note (carrying
+`<!-- boucle:agent -->`) is skipped before routing.
+
+The doctor's orphaned-`boucle:spec-review` recovery mirrors this contract:
+an emoji re-triggers the worker; a reply re-triggers triage.
 
 The same emoji set re-triggers triage from `boucle:needs-info` (e.g. after
 the user adds an API key following a no-key or quota-exhausted help message).
@@ -334,6 +346,32 @@ Closing the MR (not merging) fires `merge_request close` (dispatch.sh:207-258):
 - any other (`boucle:todo`/`working`/`review`/`merging`) → revert to
   `boucle:todo` + `chain_to_role worker` (fresh start).
 
+### 4.5b MR events on GitHub — vocabulary translation
+
+§4.3–4.5 describe the MR webhooks in the **GitLab** vocabulary, which is what
+the router's `case` arms match: `open`, `update`, `close`, `reopen`,
+`approved`, `unapproved`, `merge`. GitHub sends different words, and its
+payload puts the MR under `.pull_request` rather than `.object_attributes`.
+Both are normalized in dispatch before routing — `dispatch_github_mr_action`
+for the verb, a two-shape jq filter for the branch and IID:
+
+| GitHub event + action | GitLab action | Routes to |
+|---|---|---|
+| `pull_request` `synchronize` | `update` | reviewer (§4.4) |
+| `pull_request` `closed`, `.pull_request.merged == true` | `merge` | catchup |
+| `pull_request` `closed`, not merged | `close` | §4.5 |
+| `pull_request` `opened` / `reopened` | `open` / `reopen` | §4.4 |
+| `pull_request_review` `submitted`, state `approved` | `approved` | merger (§4.3) |
+| `pull_request_review` `dismissed` | `unapproved` | reviewer |
+| any other review (commented, changes requested) | *(none)* | stays a note (§4.6) |
+| `ready_for_review`, `review_requested`, `edited` | *(none)* | skip |
+
+A merge arrives as a close on GitHub; only `.pull_request.merged` tells the two
+apart, and that bit decides catchup versus a worker re-run. `synchronize` must
+also be in the workflow's `pull_request` trigger types — without it GitHub
+never delivers the event, and a PR is checked once at open and never again on
+later pushes.
+
 ### 4.6 Comment on MR — worker re-run with feedback
 
 A human comment on the MR (dispatch.sh:331-359) reverts the issue to
@@ -361,9 +399,18 @@ re-trigger a closed issue by any other means. (LESSONS.yml lesson #44.)
 | Filter | Condition | Action |
 |---|---|---|
 | boucle's own comment | note body has `<!-- boucle:agent -->` marker | skip (I7) |
+| boucle's own 👀 ack | emoji event, `awardable_type == Issue`, name canonicalizes to `eyes` | skip |
 | bot-originated event | `ACTOR == BOUCLE_BOT_USERNAME` and action ≠ `merge` | skip |
 | system note | `object_attributes.system == true` | skip (AGENTS.md #34) |
 | non-boucle branch | source_branch not `boucle/<iid>` | skip |
+
+The 👀 filter is not redundant with the bot-identity filter: in mono-user
+mode there is no bot account, so `ACTOR` is the human on *every* event —
+including boucle's own reaction. Where emoji events reach dispatch at all
+(`bin/setup` writes `emoji_events=false`, but a pre-existing hook may have
+it on), triage's own acknowledgement would otherwise land on an issue still
+labelled `boucle:triage` — a label that routes to triage unconditionally —
+and the loop would re-triage itself.
 
 A local harness posting a comment MUST let the stamp be applied (via
 `forge_issue_note` / `forge_mr_note` or by including `<!-- boucle:agent -->`
