@@ -208,7 +208,8 @@ reinforce the afrofuturist identity without overwhelming the layout:
   indicator ("2 / 7", tabular figures so it does not shift, `aria-live="polite"`
   so screen readers announce changes), and an interactive dot indicator
   (`aria-label="Go to step N of 7"`). Keyboard ArrowLeft/ArrowRight navigate
-  when focus is inside the section. Each step carries
+  when the section is in view (or when focus is inside it), and the active step
+  is shown as a distinct gold line in the progress bar. Each step carries
   `role="group"`, `aria-roledescription="slide"`, and `aria-label="Step X of 7"`.
 - Matches the README mermaid diagram but simplified for a landing page.
 

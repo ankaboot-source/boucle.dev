@@ -471,7 +471,7 @@ const description = hero.data.metaDescription;
         background: var(--accent-gold-dim);
       }
       .step-dot.is-active {
-        width: 28px;
+        width: 44px;
         background: var(--accent);
       }
       .step-dot:focus-visible {
@@ -1629,6 +1629,7 @@ const description = hero.data.metaDescription;
 
         let current = 0;
         let timer = null;
+        let isSectionVisible = false;
 
         // Build the dot indicator.
         const dots = [];
@@ -1649,7 +1650,10 @@ const description = hero.data.metaDescription;
           track.classList.add('is-animating');
           track.style.transform = `translateX(-${current * 100}%)`;
           renderState();
-          if (userInitiated) restartAutoplay();
+          // Always reschedule the auto-play timer — on user navigation AND on
+          // each auto-advance — so the slideshow keeps looping through all
+          // steps while idle and in view (issue #41 autoplay criterion).
+          restartAutoplay();
         }
 
         function renderState() {
@@ -1678,11 +1682,17 @@ const description = hero.data.metaDescription;
           }
         }
 
-        // Enable keyboard navigation when focus is inside the section.
+        // Keyboard navigation responds when the section is visible in the
+        // viewport (issue #41: "press ArrowRight/ArrowLeft advances") OR when
+        // focus is inside the section. preventDefault stops the page from
+        // scrolling horizontally.
         document.addEventListener('keydown', (e) => {
           if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
           const target = e.target;
-          if (!target.closest('#how-it-works')) return;
+          const focusInside =
+            target && typeof target.closest === 'function' &&
+            target.closest('#how-it-works');
+          if (!isSectionVisible && !focusInside) return;
           e.preventDefault();
           if (e.key === 'ArrowRight') goTo(current + 1, true);
           else goTo(current - 1, true);
@@ -1697,6 +1707,7 @@ const description = hero.data.metaDescription;
           const sectionObserver = new IntersectionObserver(
             (entries) => {
               entries.forEach((entry) => {
+                isSectionVisible = entry.isIntersecting;
                 if (entry.isIntersecting) restartAutoplay();
                 else stopAutoplay();
               });
