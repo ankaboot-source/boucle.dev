@@ -1,0 +1,216 @@
+# yaml-language-server: $schema=https://unpkg.com/@sveltia/cms/schema/sveltia-cms.json
+# Sveltia CMS configuration for boucle.dev.
+#
+# Every collection mirrors an Astro content collection (src/content/**, schema
+# in src/content.config.ts). Each field below maps 1:1 to a frontmatter key so
+# that editing through the CMS rewrites the same files the Astro build reads,
+# with no data loss. Text AND icons are editable: every step and card carries
+# its inline SVG markup in an `icon` frontmatter string.
+#
+# Authentication: GitHub backend using a Personal Access Token. The token is
+# entered by the editor at the "Sign in with Token" prompt and stored in the
+# browser. Configure a dedicated fine-grained PAT for this repository in CI as
+# the SVELTIA_PAT env var (documented in README.md).
+
+backend:
+  name: github
+  repo: ankaboot-source/boucle.dev
+  branch: main
+
+# No media uploads are currently needed — all brand assets are committed to
+# the repo (public/). A local media folder is still declared so the CMS loads.
+media_folder: /public/media
+public_folder: /media
+
+# Simple workflow: an edit is committed directly to the default branch and the
+# site redeploys (GitHub Pages). No draft-branch/PR step, matching the goal
+# "edit, save, see the change live".
+
+collections:
+  # ---------- Hero (single file) ----------
+  - name: hero
+    label: Hero
+    label_singular: Hero
+    description: Hero section — headline, subheadline, CTAs, meta.
+    files:
+      - name: hero
+        label: Hero
+        file: src/content/hero/hero.md
+        fields:
+          - { name: metaTitle, label: Meta title, widget: string }
+          - { name: metaDescription, label: Meta description, widget: text }
+          - { name: skipLink, label: Skip link, widget: string }
+          - { name: sectionAriaLabel, label: Section aria-label, widget: string }
+          - { name: wordmark, label: Wordmark, widget: string }
+          - { name: headline, label: Headline, widget: string }
+          - { name: subheadline, label: Subheadline, widget: text }
+          - { name: logoAriaLabel, label: Logo aria-label, widget: string }
+          - { name: ctaPrimaryLabel, label: Primary CTA label, widget: string }
+          - { name: ctaPrimaryHref, label: Primary CTA link, widget: string }
+          - { name: ctaSecondaryLabel, label: Secondary CTA label, widget: string }
+          - { name: ctaSecondaryHref, label: Secondary CTA link, widget: string }
+
+  # ---------- How it works header (single file) ----------
+  - name: howItWorks
+    label: How it works — header
+    label_singular: How it works
+    description: Section header, forge logos, and slideshow labels.
+    files:
+      - name: how-it-works
+        label: How it works header
+        file: src/content/how-it-works/how-it-works.md
+        fields:
+          - { name: title, label: Title, widget: string }
+          - { name: sub, label: Subtitle, widget: text }
+          - { name: logosAriaLabel, label: Logos aria-label, widget: string }
+          - { name: githubSrc, label: GitHub logo src, widget: string }
+          - { name: githubAlt, label: GitHub alt, widget: string }
+          - { name: gitlabSrc, label: GitLab logo src, widget: string }
+          - { name: gitlabAlt, label: GitLab alt, widget: string }
+          - { name: prevStepLabel, label: Previous step label, widget: string }
+          - { name: nextStepLabel, label: Next step label, widget: string }
+          - { name: stepNavAriaLabel, label: Step nav aria-label, widget: string }
+          - { name: slideAriaLabelTemplate, label: Slide aria-label template, widget: string }
+          - { name: dotAriaLabelTemplate, label: Dot aria-label template, widget: string }
+
+  # ---------- Steps (How boucle works) ----------
+  - name: steps
+    label: Steps
+    label_singular: Step
+    description: The seven "How boucle works" slides. Each step has a title,
+      description, an inline SVG icon, and the forge mockup blocks.
+    folder: src/content/steps
+    extension: md
+    format: frontmatter
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { name: order, label: Order, widget: number, value_type: int }
+      - { name: title, label: Title, widget: string }
+      - { name: description, label: Description, widget: text }
+      - { name: ariaLabel, label: Mockup aria-label, widget: string }
+      - { name: url, label: Mockup URL (optional), widget: string, required: false }
+      - name: icon
+        label: Icon (inline SVG)
+        widget: text
+        hint: Paste the full <svg>…</svg> markup here. It renders as the step icon.
+      - name: blocks
+        label: Forge mockup blocks
+        widget: list
+        collapsed: true
+        fields:
+          - name: type
+            label: Type
+            widget: select
+            options:
+              - { label: Badge, value: badge }
+              - { label: Title, value: title }
+              - { label: Description, value: desc }
+              - { label: Meta, value: meta }
+              - { label: Author, value: author }
+              - { label: Comment, value: comment }
+              - { label: Preview, value: preview }
+              - { label: Reactions, value: reactions }
+              - { label: Hint, value: hint }
+              - { label: Status, value: status }
+              - { label: PR title, value: prTitle }
+              - { label: Verdict, value: verdict }
+              - { label: Deploy, value: deploy }
+              - { label: Deploy label, value: deployLabel }
+              - { label: Live badge, value: liveBadge }
+          - { name: text, label: Text, widget: string, required: false }
+          - { name: className, label: CSS class, widget: string, required: false }
+          - { name: avatarClass, label: Avatar CSS class, widget: string, required: false }
+          - name: items
+            label: Reaction items
+            widget: list
+            required: false
+            fields:
+              - { name: label, label: Label, widget: string }
+              - { name: active, label: Active, widget: boolean, required: false }
+
+  # ---------- Why boucle header (single file) ----------
+  - name: whyBoucle
+    label: Why boucle — header
+    label_singular: Why boucle
+    description: '"Why boucle" section title and subtitle.'
+    files:
+      - name: why-boucle
+        label: Why boucle header
+        file: src/content/why-boucle/why-boucle.md
+        fields:
+          - { name: title, label: Title, widget: string }
+          - { name: sub, label: Subtitle, widget: text }
+
+  # ---------- Cards (Why boucle) ----------
+  - name: cards
+    label: Why boucle — cards
+    label_singular: Card
+    description: The five promise cards. Each card has a title, pain point,
+      answer, and an inline SVG brand icon.
+    folder: src/content/cards
+    extension: md
+    format: frontmatter
+    create: true
+    slug: "{{slug}}"
+    fields:
+      - { name: order, label: Order, widget: number, value_type: int }
+      - { name: featured, label: Featured, widget: boolean, required: false }
+      - { name: title, label: Title, widget: string }
+      - { name: pain, label: Pain point, widget: text }
+      - { name: answer, label: Answer, widget: text }
+      - name: icon
+        label: Icon (inline SVG)
+        widget: text
+        hint: Paste the full <svg>…</svg> markup here. It renders as the card icon.
+
+  # ---------- Quick start (single file) ----------
+  - name: quickStart
+    label: Quick start
+    label_singular: Quick start
+    description: Quick-start section — tabs, code blocks, transition, docs link.
+    files:
+      - name: quick-start
+        label: Quick start
+        file: src/content/quick-start/quick-start.md
+        fields:
+          - { name: title, label: Title, widget: string }
+          - { name: sub, label: Subtitle, widget: text }
+          - { name: tablistAriaLabel, label: Tabs aria-label, widget: string }
+          - { name: onelinerTab, label: Oneliner tab label, widget: string }
+          - { name: promptTab, label: Prompt tab label, widget: string }
+          - { name: onelinerCode, label: Oneliner code, widget: text }
+          - { name: promptCode, label: Prompt code, widget: text }
+          - { name: copyLabel, label: Copy label, widget: string }
+          - { name: copiedLabel, label: Copied label, widget: string }
+          - { name: failedLabel, label: Failed label, widget: string }
+          - { name: transitionNum, label: Transition number, widget: string }
+          - { name: transitionPrefix, label: Transition prefix, widget: string }
+          - { name: transitionTag, label: Transition tag, widget: string }
+          - { name: transitionSuffix, label: Transition suffix, widget: string }
+          - { name: docsLabel, label: Docs link label, widget: string }
+          - { name: docsHref, label: Docs link URL, widget: string }
+
+  # ---------- Footer (single file) ----------
+  - name: footer
+    label: Footer
+    label_singular: Footer
+    description: Footer attribution, links, and icons credit.
+    files:
+      - name: footer
+        label: Footer
+        file: src/content/footer/footer.md
+        fields:
+          - { name: madePrefix, label: Made prefix, widget: string }
+          - { name: madeLabel, label: Made label, widget: string }
+          - { name: madeHref, label: Made link, widget: string }
+          - { name: navAriaLabel, label: Nav aria-label, widget: string }
+          - name: links
+            label: Links
+            widget: list
+            fields:
+              - { name: label, label: Label, widget: string }
+              - { name: href, label: URL, widget: string }
+          - { name: iconsPrefix, label: Icons prefix, widget: string }
+          - { name: iconsLabel, label: Icons label, widget: string }
+          - { name: iconsHref, label: Icons link, widget: string }

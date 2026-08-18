@@ -72,6 +72,7 @@ const steps = defineCollection({
     description: z.string(),
     ariaLabel: z.string(),
     url: z.string().optional(),
+    icon: z.string(),
     blocks: z.array(mockBlock).default([]),
   }),
 });
@@ -93,6 +94,7 @@ const cards = defineCollection({
     title: z.string(),
     pain: z.string(),
     answer: z.string(),
+    icon: z.string(),
   }),
 });
 
