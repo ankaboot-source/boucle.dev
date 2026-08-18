@@ -31,10 +31,15 @@ const howItWorks = defineCollection({
     githubAlt: z.string(),
     gitlabSrc: z.string(),
     gitlabAlt: z.string(),
+    prevStepLabel: z.string(),
+    nextStepLabel: z.string(),
+    stepNavAriaLabel: z.string(),
+    slideAriaLabelTemplate: z.string(),
+    dotAriaLabelTemplate: z.string(),
   }),
 });
 
-// Each of the six steps: title, description, and the forge mini-mockup.
+// Each step: title, description, and the forge mini-mockup.
 // The mockup body is an ordered list of typed blocks, each reproducing one
 // DOM fragment exactly. A step may have an empty/absent mock so it degrades
 // gracefully (only the bar renders, no empty DOM artifacts).

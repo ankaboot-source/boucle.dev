@@ -1210,7 +1210,7 @@ const description = hero.data.metaDescription;
 
         <div class="hero-inner">
           <div class="hero-copy">
-            <div class="logo-lockup" aria-label="boucle logo">
+            <div class="logo-lockup" aria-label={hero.data.logoAriaLabel}>
               <span class="wordmark">{hero.data.wordmark}</span>
             </div>
 
@@ -1276,7 +1276,7 @@ const description = hero.data.metaDescription;
             <div class="steps-track" id="steps-track">
             {
               steps.map((step, i) => (
-                <div class="step" role="group" aria-roledescription="slide" aria-label={`Step ${i + 1} of ${steps.length}`} aria-hidden={i === 0 ? 'false' : 'true'}>
+                <div class="step" role="group" aria-roledescription="slide" aria-label={howItWorks.data.slideAriaLabelTemplate.replace('{n}', String(i + 1)).replace('{total}', String(steps.length))} aria-hidden={i === 0 ? 'false' : 'true'}>
                   <div class="step-head">
                     <div class="step-icon" aria-hidden="true">
                       {(() => {
@@ -1395,18 +1395,18 @@ const description = hero.data.metaDescription;
                 type="button"
                 class="step-nav"
                 id="step-prev"
-                aria-label="Previous step"
+                aria-label={howItWorks.data.prevStepLabel}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </button>
-              <div class="step-dots" id="step-dots" role="tablist" aria-label="Step navigation"></div>
+              <div class="step-dots" id="step-dots" role="tablist" aria-label={howItWorks.data.stepNavAriaLabel} data-dot-label-template={howItWorks.data.dotAriaLabelTemplate}></div>
               <button
                 type="button"
                 class="step-nav"
                 id="step-next"
-                aria-label="Next step"
+                aria-label={howItWorks.data.nextStepLabel}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                   <path d="M9 6l6 6-6 6" />
@@ -1656,7 +1656,7 @@ const description = hero.data.metaDescription;
           const dot = document.createElement('button');
           dot.type = 'button';
           dot.className = 'step-dot';
-          dot.setAttribute('aria-label', `Go to step ${i + 1} of ${total}`);
+          dot.setAttribute('aria-label', dotsWrap.dataset.dotLabelTemplate.replace('{n}', String(i + 1)).replace('{total}', String(total)));
           dot.addEventListener('click', () => goTo(i, true));
           dotsWrap.appendChild(dot);
           dots.push(dot);

@@ -6,7 +6,7 @@ sectionAriaLabel: boucle — introduction
 wordmark: boucle
 headline: Great ideas deserve to ship.
 subheadline: From a ticket in your forge to a feature in production. Boucle works so you can live. You decide at the key moments, nothing else. 👍👎
-logoAriaLabel: "boucle logo — afrofuturist face with golden afro, créoles, and sunglasses"
+logoAriaLabel: "boucle logo"
 ctaPrimaryLabel: Get started
 ctaPrimaryHref: "#quick-start"
 ctaSecondaryLabel: How it works
