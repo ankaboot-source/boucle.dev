@@ -166,13 +166,14 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 ### How it works
 
-- 6-step flow (mobile-first vertical, then 2-col ≥768px, 3-col ≥1024px):
+- 7-step flow (mobile-first vertical, then 2-col ≥768px, 3-col ≥1024px):
   1. Drop your idea in an issue
   2. Receive a proposal with a preview
   3. Validate with a thumb
   4. It works
   5. It's verified
   6. Approve, it's live
+  7. Lessons learned
 - Each step: icon (geometric SVG), first-person narrative title, one-sentence
   description, and a forge mini-mockup (issue card, comment with preview,
   reaction emoji, working status, PR verdict, merged/live badge).
