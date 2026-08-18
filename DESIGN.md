@@ -107,6 +107,12 @@ readability or WCAG 2.1 AA contrast.
   deploy). The deploy uses a progress `scaleX(0→1)` fill plus a checkmark fade.
 - **Ambient loop pulse** — the ∞ motif in the hero visor breathes via a 3s
   `ease-in-out infinite` opacity pulse (1→0.45→1), evoking the cyclical loop.
+- **How-it-works slideshow** — the step track slides horizontally on
+  navigation with a single `transform: translateX` transition of **0.5s
+  ease** (no bounce). Autoplay advances one step every 5s when the section is
+  in view and idle; any user interaction resets the timer. Under
+  `prefers-reduced-motion: reduce` the slide transition is instant and
+  auto-play is disabled (manual prev/next arrows still work).
 - No parallax, no spin, no bounce — calm, not flashy.
 - `prefers-reduced-motion: reduce` → all animations disabled; the global
   reduced-motion block (`animation-duration: 0.01ms !important`,
@@ -178,7 +184,7 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 ### How it works
 
-- 7-step flow (mobile-first vertical, then 2-col ≥768px, 3-col ≥1024px):
+- 7-step flow presented as a **single-step animated slideshow** (loop):
   1. Drop your idea in an issue
   2. Receive a proposal with a preview
   3. Validate with a thumb
@@ -186,6 +192,9 @@ reinforce the afrofuturist identity without overwhelming the layout:
   5. It's verified
   6. Approve, it's live
   7. Lessons learned
+- A horizontal track holds the steps; only one step is visible at a time (the
+  first is visible before JS runs — no flash, no blank container). After the
+  last step, next loops to step 1; before step 1, previous wraps to step 7.
 - Each step: icon (geometric SVG), first-person narrative title, one-sentence
   description, and a forge mini-mockup (issue card, comment with preview,
   reaction emoji, working status, PR verdict, merged/live badge).
@@ -193,7 +202,11 @@ reinforce the afrofuturist identity without overwhelming the layout:
   dots + URL, a body using `--surface-raised`/`--bg-secondary` and
   `--text-primary`/`--text-secondary`. Decorative internals are `aria-hidden`;
   each mock has a `role="img"` + `aria-label` description.
-- Connected by a faint gold dotted line (the "loop").
+- **Controls** — prev/next arrow buttons (44×44px touch targets,
+  `aria-label="Previous step"` / `"Next step"`) and an interactive dot
+  indicator (`aria-label="Go to step N of 7"`). Keyboard ArrowLeft/ArrowRight
+  navigate when focus is inside the section. Each step carries
+  `role="group"`, `aria-roledescription="slide"`, and `aria-label="Step X of 7"`.
 - Matches the README mermaid diagram but simplified for a landing page.
 
 ### Lives in your forge
