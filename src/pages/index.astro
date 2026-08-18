@@ -457,7 +457,12 @@ const description = hero.data.metaDescription;
         display: flex;
         gap: 0.5rem;
       }
-      .step-dot {
+      /* The step dots are created dynamically by the slideshow JS
+         (document.createElement), so they never carry Astro's scoped
+         data-astro-cid attribute. These rules MUST be global (:global) or
+         the scoped selectors never match and the active gold line does not
+         render (issue #69). */
+      :global(.step-dot) {
         width: 14px;
         height: 6px;
         padding: 0;
@@ -467,14 +472,14 @@ const description = hero.data.metaDescription;
         cursor: pointer;
         transition: background 0.2s ease, width 0.2s ease;
       }
-      .step-dot:hover {
+      :global(.step-dot:hover) {
         background: var(--accent-gold-dim);
       }
-      .step-dot.is-active {
+      :global(.step-dot.is-active) {
         width: 44px;
         background: var(--accent);
       }
-      .step-dot:focus-visible {
+      :global(.step-dot:focus-visible) {
         outline: 2px solid var(--accent);
         outline-offset: 2px;
       }
@@ -1412,7 +1417,18 @@ const description = hero.data.metaDescription;
                 </svg>
               </button>
               <span class="step-counter" id="step-counter" aria-live="polite"></span>
-              <div class="step-dots" id="step-dots" role="tablist" aria-label={howItWorks.data.stepNavAriaLabel} data-dot-label-template={howItWorks.data.dotAriaLabelTemplate}></div>
+              <div class="step-dots" id="step-dots" role="tablist" aria-label={howItWorks.data.stepNavAriaLabel}>
+                {
+                  steps.map((step, i) => (
+                    <button
+                      type="button"
+                      class={`step-dot${i === 0 ? ' is-active' : ''}`}
+                      aria-label={howItWorks.data.dotAriaLabelTemplate.replace('{n}', String(i + 1)).replace('{total}', String(steps.length))}
+                      aria-selected={i === 0 ? 'true' : 'false'}
+                    ></button>
+                  ))
+                }
+              </div>
               <button
                 type="button"
                 class="step-nav"
@@ -1631,16 +1647,13 @@ const description = hero.data.metaDescription;
         let timer = null;
         let isSectionVisible = false;
 
-        // Build the dot indicator.
-        const dots = [];
-        slides.forEach((slide, i) => {
-          const dot = document.createElement('button');
-          dot.type = 'button';
-          dot.className = 'step-dot';
-          dot.setAttribute('aria-label', dotsWrap.dataset.dotLabelTemplate.replace('{n}', String(i + 1)).replace('{total}', String(total)));
+        // Wire up the server-rendered dot indicator. The dots are part of
+        // the static HTML (first one already .is-active), so with JS disabled
+        // the active gold line for step 1 is still visible (progressive
+        // enhancement). Here we only attach click handlers.
+        const dots = Array.from(dotsWrap.querySelectorAll('.step-dot'));
+        dots.forEach((dot, i) => {
           dot.addEventListener('click', () => goTo(i, true));
-          dotsWrap.appendChild(dot);
-          dots.push(dot);
         });
 
         function goTo(index, userInitiated) {
