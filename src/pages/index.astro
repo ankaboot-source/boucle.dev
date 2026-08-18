@@ -30,7 +30,15 @@ const description = hero.data.metaDescription;
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#0d1117" />
-    <link rel="icon" type="image/svg+xml" href="/boucle.dev/favicon.svg" />
+    <link rel="icon" type="image/png" href="/boucle.dev/boucle-logo.png" />
+    <!-- Open Graph social-share preview (self-hosted assets only, GDPR-safe).
+         og:image is the absolute URL of the static logo PNG, including the
+         /boucle.dev/ base path so social crawlers resolve it correctly. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content="https://ankaboot-source.github.io/boucle.dev/boucle-logo.png" />
+    <meta property="og:url" content="https://ankaboot-source.github.io/boucle.dev/" />
     <style>
       /* Self-hosted fonts — no Google Fonts CDN (GDPR).
          Unbounded (display) and Sora (body) are variable fonts (wght axis),
@@ -282,7 +290,7 @@ const description = hero.data.metaDescription;
       .hero-logo-video video {
         width: min(340px, 70vw);
         height: auto;
-        border-radius: 50%;
+        border-radius: var(--radius);
         display: block;
         box-shadow: 0 0 60px var(--glow-gold);
       }
@@ -959,8 +967,9 @@ const description = hero.data.metaDescription;
       }
 
       .quick-link {
-        display: inline-block;
-        margin-top: 2rem;
+        display: block;
+        margin: 2rem auto 0;
+        width: fit-content;
         font-weight: 600;
         color: var(--accent);
         text-decoration: none;
