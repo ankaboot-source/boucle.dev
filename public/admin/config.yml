@@ -4,8 +4,9 @@
 # Every collection mirrors an Astro content collection (src/content/**, schema
 # in src/content.config.ts). Each field below maps 1:1 to a frontmatter key so
 # that editing through the CMS rewrites the same files the Astro build reads,
-# with no data loss. Text AND icons are editable: every step and card carries
-# its inline SVG markup in an `icon` frontmatter string.
+# with no data loss. Text AND icons are editable: every step carries its inline
+# SVG markup in an `icon` frontmatter string; every card references its icon as
+# an asset path (public/icons/card-N.svg).
 #
 # Authentication: GitHub backend using a Personal Access Token. The token is
 # entered by the editor at the "Sign in with Token" prompt and stored in the
@@ -147,7 +148,7 @@ collections:
     label: Why boucle — cards
     label_singular: Card
     description: The five promise cards. Each card has a title, pain point,
-      answer, and an inline SVG brand icon.
+      answer, and an icon asset path (public/icons/card-N.svg).
     folder: src/content/cards
     extension: md
     format: frontmatter
@@ -160,9 +161,9 @@ collections:
       - { name: pain, label: Pain point, widget: text }
       - { name: answer, label: Answer, widget: text }
       - name: icon
-        label: Icon (inline SVG)
-        widget: text
-        hint: Paste the full <svg>…</svg> markup here. It renders as the card icon.
+        label: Icon (asset path)
+        widget: string
+        hint: Path to the card icon SVG asset, e.g. /boucle.dev/icons/card-1.svg.
 
   # ---------- Quick start (single file) ----------
   - name: quickStart

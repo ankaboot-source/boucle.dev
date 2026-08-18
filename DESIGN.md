@@ -239,10 +239,11 @@ reinforce the afrofuturist identity without overwhelming the layout:
 - Remaining 4 cards ("Deterministic and reliable", "Works while you sleep",
   "No UI, No CLI", "Self-healing, self-learning loop") display in a 2×2 grid on
   tablet/desktop, stacked on mobile.
-- Each card: a unique inline SVG icon (from svghub.vercel.app, `aria-hidden`)
-  beside the title, then a pain point (muted text, striked on scroll-reveal with
-  the strike line constrained to the text width only) preceded by a small X
-  (remove) icon, then boucle's answer (gold/violet accent).
+- Each card: a unique icon loaded from an external SVG asset
+  (`public/icons/card-N.svg`, `aria-hidden`), constrained to 2.5rem by the
+  `.card-icon` class, beside the title, then a pain point (muted text, striked
+  on scroll-reveal with the strike line constrained to the text width only)
+  preceded by a small X (remove) icon, then boucle's answer (gold/violet accent).
 - Cards animate in on scroll-reveal (fade-in-up) and on hover (gold border +
   glow), respecting `prefers-reduced-motion`.
 

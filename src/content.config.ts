@@ -94,6 +94,7 @@ const cards = defineCollection({
     title: z.string(),
     pain: z.string(),
     answer: z.string(),
+    // Asset path to the card icon SVG (public/icons/card-N.svg).
     icon: z.string(),
   }),
 });
