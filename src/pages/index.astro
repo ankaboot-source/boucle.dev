@@ -390,14 +390,19 @@ const description = hero.data.metaDescription;
       }
 
       /* Slideshow viewport — a flex track shows exactly one step at a time.
-         `overflow: hidden` keeps only the current slide visible, and with no
-         JS transform the first step is shown (no flash of all steps, no blank
-         container). The track height matches the tallest slide, so the
-         container does not jump between steps. */
+         `overflow: hidden` lives on the `.steps-viewport` WRAPPER, never on
+         the `.steps-track` that receives the `translateX` transform: if the
+         transformed element also clipped, the clip window would move with the
+         track and always show the same first slide. With no JS transform the
+         first step is shown (no flash of all steps, no blank container). The
+         track height matches the tallest slide, so the container does not
+         jump between steps. */
+      .steps-viewport {
+        overflow: hidden;
+      }
       .steps-track {
         display: flex;
         align-items: stretch;
-        overflow: hidden;
       }
       .steps-track.is-animating {
         transition: transform 0.5s ease;
@@ -472,6 +477,18 @@ const description = hero.data.metaDescription;
       .step-dot:focus-visible {
         outline: 2px solid var(--accent);
         outline-offset: 2px;
+      }
+
+      /* Visible step-number indicator — "2 / 7". Uses a tabular figure so
+         the counter does not shift when the digits change. aria-live lets
+         screen readers announce step changes. */
+      .step-counter {
+        min-width: 3.5rem;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        white-space: nowrap;
       }
 
       .step-head {
@@ -1282,7 +1299,8 @@ const description = hero.data.metaDescription;
           </ul>
 
           <div class="steps">
-            <div class="steps-track" id="steps-track">
+            <div class="steps-viewport">
+              <div class="steps-track" id="steps-track">
             {
               steps.map((step, i) => (
                 <div class="step" role="group" aria-roledescription="slide" aria-label={howItWorks.data.slideAriaLabelTemplate.replace('{n}', String(i + 1)).replace('{total}', String(steps.length))} aria-hidden={i === 0 ? 'false' : 'true'}>
@@ -1396,9 +1414,10 @@ const description = hero.data.metaDescription;
                 </div>
               ))
             }
+              </div>
             </div>
 
-            <!-- Slideshow controls — prev/next arrows, dot indicator -->
+            <!-- Slideshow controls — prev/next arrows, visible step counter, dot indicator -->
             <div class="steps-controls">
               <button
                 type="button"
@@ -1410,6 +1429,7 @@ const description = hero.data.metaDescription;
                   <path d="M15 18l-6-6 6-6" />
                 </svg>
               </button>
+              <span class="step-counter" id="step-counter" aria-live="polite"></span>
               <div class="step-dots" id="step-dots" role="tablist" aria-label={howItWorks.data.stepNavAriaLabel} data-dot-label-template={howItWorks.data.dotAriaLabelTemplate}></div>
               <button
                 type="button"
@@ -1651,6 +1671,7 @@ const description = hero.data.metaDescription;
         const dotsWrap = document.getElementById('step-dots');
         const prevBtn = document.getElementById('step-prev');
         const nextBtn = document.getElementById('step-next');
+        const counter = document.getElementById('step-counter');
 
         const reducedMotion =
           window.matchMedia &&
@@ -1689,6 +1710,7 @@ const description = hero.data.metaDescription;
             dot.classList.toggle('is-active', i === current);
             dot.setAttribute('aria-selected', i === current ? 'true' : 'false');
           });
+          if (counter) counter.textContent = `${current + 1} / ${total}`;
         }
 
         function restartAutoplay() {
