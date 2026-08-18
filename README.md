@@ -80,7 +80,8 @@ official CDN, running **only** at `/admin/` (never on the public page).
    write` access to this repository (the "Sign in with Token" button links to
    the token page with the required scopes pre-selected).
 3. Pick a collection (Hero, Steps, Cards, Quick start, Footer…) and edit any
-   text field — or paste new inline SVG markup into an `Icon` field.
+   text field — or, for Steps, paste new inline SVG markup into an `Icon` field
+   (for Cards, the `Icon` field takes an asset path like `/boucle.dev/icons/card-1.svg`).
 4. Save; Sveltia commits the change to the repository and the site redeploys.
 
 > **SVELTIA_PAT**: the `SVELTIA_PAT` environment variable is reserved for the
