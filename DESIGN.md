@@ -120,15 +120,22 @@ readability or WCAG 2.1 AA contrast.
 The boucle logo is a **figurative afrofuturist face**: a face with a **golden
 afro** (the full gold circle = the "boucle" / boucle d'or), **gold hoop créoles**
 (earrings), and an **afrofuturist gold visor** (sunglasses) with the **infinity
-loop (∞)** woven into the visor bridge. It is a single-color SVG using
-`--accent` (gold) on `--surface-base` (dark) backgrounds.
+loop (∞)** woven into the visor bridge. It is a circular gold mark on
+`--surface-base` (dark) backgrounds.
 
-The logo is generated as an **inline SVG** in the Astro component — figurative
-but sober and professional, not a caricatural illustration. It carries
-`role="img"` and a descriptive `aria-label` (e.g. "boucle logo — afrofuturist
-face with golden afro, créoles, and sunglasses"). All fills use the charter
-tokens with a literal fallback (`var(--accent, #f5c842)`) so the logo never
-renders blank without `var()` support. No raster image data.
+The primary brand assets are raster (the only raster files on the site):
+
+- **`public/boucle-logo.png`** — the static logo (714×714). Used as the video
+  `poster` so the hero never shows a blank space before the video loads or when
+  autoplay is blocked / reduced motion is preferred.
+- **`public/boucle-logo.mp4`** — the animated logo (autoplay, loop, muted,
+  playsinline). Rendered in the hero via a `video` element, shown large in its own
+  standalone column on desktop.
+
+The video is decorative brand identity: it carries `aria-hidden="true"`, and the
+hero logo-lockup retains a descriptive `aria-label` (e.g. "boucle logo").
+`prefers-reduced-motion: reduce` disables autoplay (JS removes the `autoplay`
+attribute and pauses the video) so only the static PNG poster is shown.
 
 A matching standalone `public/favicon.svg` reuses the same face, simplified so
 the afro circle, face, and visor remain distinguishable at 32×32 (créoles and
@@ -153,7 +160,12 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 - Full-viewport height, dark gradient background (`--surface-base` → `--bg-secondary`).
 - Ambient violet/gold glow blobs (CSS `radial-gradient`, `filter: blur(80px)`).
-- Logo + "boucle" wordmark (gold) centered or left-aligned.
+- Desktop (≥1024px): a two-column grid. Left column holds the "boucle" wordmark,
+  headline, subheadline, forge badges and CTAs. Right column is the **standalone
+  animated logo video** (`public/boucle-logo.mp4`,
+  `poster` `public/boucle-logo.png`), shown large
+  (~340px, circular, gold glow) in its own column — not just beside the
+  wordmark. Below 1024px the layout stacks vertically (video below text).
 - Headline: "Great ideas deserve to ship." — display font, fluid size.
 - Subheadline: "From a ticket in your forge to a feature in production. Boucle works so you can live. You decide at the key moments, nothing else. 👍👎"
 - **Forge badges** — a row of "GitHub" and "GitLab" badges directly under the

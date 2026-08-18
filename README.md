@@ -48,8 +48,10 @@ Then create an issue in your forge and tag it `boucle:triage` — the loop start
 
 The boucle logo is a **figurative afrofuturist face**: a golden afro (the
 full circle = the "boucle"), gold hoop créoles, and an afrofuturist gold
-visor with the infinity loop (∞) woven into the bridge. It is an inline SVG
-in the hero, with a matching `public/favicon.svg`.
+visor with the infinity loop (∞) woven into the bridge. The hero shows it as
+an **animated logo video** (`public/boucle-logo.mp4`, autoplay/loop/muted) in
+a standalone column on desktop, with `public/boucle-logo.png` as the static
+poster/fallback. A matching `public/favicon.svg` provides the 32×32 favicon.
 
 Made in Africa by [ankaboot.io](https://ankaboot.io).
 
