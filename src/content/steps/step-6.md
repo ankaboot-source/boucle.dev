@@ -15,4 +15,5 @@ blocks:
     className: mock-verdict--merged
   - type: liveBadge
     text: "● Live in production"
+icon: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M12 3v12M7 8l5-5 5 5\" /><path d=\"M4 21h16\" /></svg>"
 ---

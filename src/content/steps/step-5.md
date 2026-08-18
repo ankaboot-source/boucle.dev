@@ -12,4 +12,5 @@ blocks:
     className: mock-verdict--pass flow-verdict
   - type: comment
     text: "Verified: the render matches the spec. Ready to merge."
+icon: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M4 12l5 5L20 6\" /></svg>"
 ---

@@ -67,6 +67,31 @@ npm run preview
 
 The site is deployed to GitHub Pages under `/boucle.dev/`.
 
+## Editing content with Sveltia CMS
+
+Every text **and icon** on the landing page is editable through the visual
+[Sveltia CMS](https://sveltiacms.app) admin panel, without touching code or
+opening a PR manually. It is a client-side, Git-based editor served from the
+official CDN, running **only** at `/admin/` (never on the public page).
+
+1. Open `https://ankaboot-source.github.io/boucle.dev/admin/`.
+2. Sign in with a GitHub Personal Access Token that has `Contents: Read and
+   write` access to this repository (the "Sign in with Token" button links to
+   the token page with the required scopes pre-selected).
+3. Pick a collection (Hero, Steps, Cards, Quick start, Footer…) and edit any
+   text field — or paste new inline SVG markup into an `Icon` field.
+4. Save; Sveltia commits the change to the repository and the site redeploys.
+
+> **SVELTIA_PAT**: the `SVELTIA_PAT` environment variable is reserved for the
+> token so it can be injected via CI/CD. When the token is missing or invalid,
+> the admin panel shows a clear sign-in error (it never renders a blank
+> screen).
+
+The CMS config lives in `public/admin/config.yml` and mirrors the Astro content
+collections (`src/content/`, schema in `src/content.config.ts`) 1:1, so an edit
+never loses data. The Sveltia CMS bundle does not load on the public landing
+page — zero performance impact.
+
 ## License
 
 [AGPL-3.0](https://github.com/ankaboot-source/boucle/blob/main/LICENSE)

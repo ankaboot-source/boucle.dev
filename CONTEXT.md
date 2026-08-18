@@ -33,6 +33,7 @@ dogfood consumer of the engine.
 | Framework | Astro (static site, single page) |
 | Language | HTML + CSS (inline in `src/pages/index.astro`) + inline SVG; the only raster assets are the brand logo (a PNG poster `public/boucle-logo.png` and an animated MP4 `public/boucle-logo.mp4` in the hero) |
 | Content | All user-facing text lives in Astro content collections (`src/content/`, schema in `src/content.config.ts`) — editable without touching HTML/CSS |
+| CMS | Sveltia CMS (`public/admin/`, official CDN) — visual Git-based editor for all text AND icons; GitHub backend, PAT auth |
 | Fonts | Self-hosted: Unbounded (display), Sora (body), Space Mono (mono) |
 | Deploy | GitHub Pages (`gh-pages` branch, root) |
 | Loop | boucle engine (`.boucle/` submodule) |
@@ -54,6 +55,10 @@ dogfood consumer of the engine.
   The reviewer falls back to diff review.
 - **No Google Fonts** — all fonts are self-hosted (GDPR). No CDN for
   fonts.
+- **Sveltia CMS** — the content editor runs client-side from the official CDN
+  and loads ONLY on `/admin/`, never on the public landing page (zero
+  performance impact). Authentication uses a GitHub Personal Access Token
+  (`SVELTIA_PAT`).
 - **GDPR** — no external tracking, no third-party assets that leak data.
 - **AGPL-3.0** — the site is licensed under AGPL-3.0 (see
   [README.md](README.md)).
