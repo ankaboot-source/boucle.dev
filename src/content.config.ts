@@ -72,7 +72,7 @@ const steps = defineCollection({
     description: z.string(),
     ariaLabel: z.string(),
     url: z.string().optional(),
-    icon: z.string(),
+    icon: z.string().optional(),
     blocks: z.array(mockBlock).default([]),
   }),
 });
