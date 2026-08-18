@@ -1417,7 +1417,18 @@ const description = hero.data.metaDescription;
                 </svg>
               </button>
               <span class="step-counter" id="step-counter" aria-live="polite"></span>
-              <div class="step-dots" id="step-dots" role="tablist" aria-label={howItWorks.data.stepNavAriaLabel} data-dot-label-template={howItWorks.data.dotAriaLabelTemplate}></div>
+              <div class="step-dots" id="step-dots" role="tablist" aria-label={howItWorks.data.stepNavAriaLabel}>
+                {
+                  steps.map((step, i) => (
+                    <button
+                      type="button"
+                      class={`step-dot${i === 0 ? ' is-active' : ''}`}
+                      aria-label={howItWorks.data.dotAriaLabelTemplate.replace('{n}', String(i + 1)).replace('{total}', String(steps.length))}
+                      aria-selected={i === 0 ? 'true' : 'false'}
+                    ></button>
+                  ))
+                }
+              </div>
               <button
                 type="button"
                 class="step-nav"
@@ -1636,16 +1647,13 @@ const description = hero.data.metaDescription;
         let timer = null;
         let isSectionVisible = false;
 
-        // Build the dot indicator.
-        const dots = [];
-        slides.forEach((slide, i) => {
-          const dot = document.createElement('button');
-          dot.type = 'button';
-          dot.className = 'step-dot';
-          dot.setAttribute('aria-label', dotsWrap.dataset.dotLabelTemplate.replace('{n}', String(i + 1)).replace('{total}', String(total)));
+        // Wire up the server-rendered dot indicator. The dots are part of
+        // the static HTML (first one already .is-active), so with JS disabled
+        // the active gold line for step 1 is still visible (progressive
+        // enhancement). Here we only attach click handlers.
+        const dots = Array.from(dotsWrap.querySelectorAll('.step-dot'));
+        dots.forEach((dot, i) => {
           dot.addEventListener('click', () => goTo(i, true));
-          dotsWrap.appendChild(dot);
-          dots.push(dot);
         });
 
         function goTo(index, userInitiated) {
