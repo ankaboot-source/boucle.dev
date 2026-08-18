@@ -1,6 +1,8 @@
 ---
 // boucle.dev — landing page
-// Afro-futurist + Goldilocks. Single-page static site, no raster images.
+// Afro-futurist + Goldilocks. Single-page static site. The only raster assets
+// are the brand logo: a PNG poster (public/boucle-logo.png) and an animated
+// MP4 (public/boucle-logo.mp4) in the hero. Everything else is CSS/inline SVG.
 // Conforms to DESIGN.md (tokens, components, content directives).
 // English copy (public, global audience). Self-hosted fonts (no CDN, GDPR).
 const title = 'boucle — zero-code autonomous product builder';
@@ -232,7 +234,17 @@ const description =
       .hero-inner {
         position: relative;
         z-index: 1;
-        max-width: 760px;
+        max-width: 1100px;
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+        align-items: center;
+      }
+
+      .hero-copy {
+        max-width: 640px;
+        margin: 0 auto;
       }
 
       .logo-lockup {
@@ -241,16 +253,26 @@ const description =
         gap: 0.75rem;
         margin-bottom: 2rem;
       }
-      .logo-lockup svg {
-        width: 56px;
-        height: 56px;
-      }
       .wordmark {
         font-family: var(--font-display);
         font-size: 2rem;
         font-weight: 700;
         color: var(--text-gold);
         letter-spacing: 0.02em;
+      }
+
+      .hero-logo-video {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .hero-logo-video video {
+        width: min(340px, 70vw);
+        height: auto;
+        border-radius: 50%;
+        display: block;
+        box-shadow: 0 0 60px var(--glow-gold);
       }
 
       .hero h1 {
@@ -931,6 +953,22 @@ const description =
         }
       }
       @media (min-width: 1024px) {
+        .hero-inner {
+          grid-template-columns: 1.2fr 1fr;
+          text-align: left;
+        }
+        .hero-copy {
+          margin: 0;
+        }
+        .hero-copy .hero-sub,
+        .hero-ctas {
+          justify-content: flex-start;
+        }
+        .hero-copy .hero-sub {
+          margin-left: 0;
+          margin-right: 0;
+          text-align: left;
+        }
         .steps {
           grid-template-columns: repeat(3, 1fr);
           gap: 3rem 1.5rem;
@@ -1097,6 +1135,11 @@ const description =
         .hero-glow {
           animation: none;
         }
+        .hero-logo-video video {
+          /* Autoplaying logo animation is motion — pause it and show the static
+             PNG poster only when the user prefers reduced motion. */
+          animation: none;
+        }
         *,
         *::before,
         *::after {
@@ -1118,52 +1161,38 @@ const description =
         <div class="hero-motif" aria-hidden="true"></div>
 
         <div class="hero-inner">
-          <div class="logo-lockup">
-            <!-- Figurative afro-futurist logo: a face with a golden afro
-                 (full circle = the "boucle"), gold hoop créoles, an
-                 afrofuturist gold visor with the infinity loop (∞) woven
-                 into the bridge. Inline SVG, no raster. -->
-            <svg
-              viewBox="0 0 100 100"
-              role="img"
-              aria-label="boucle logo — afrofuturist face with golden afro, créoles, and sunglasses"
-              fill="none"
-            >
-              <!-- Afro: full gold circle (the "boucle") -->
-              <circle cx="50" cy="50" r="46" fill="var(--accent, #f5c842)" />
-              <!-- Face: figurative silhouette -->
-              <path
-                d="M50 30
-                   C 40 30, 34 36, 34 44
-                   L 34 60
-                   C 34 70, 40 78, 50 78
-                   C 60 78, 66 70, 66 60
-                   L 66 44
-                   C 66 36, 60 30, 50 30
-                   Z"
-                fill="var(--surface-base, #0d1117)"
-              />
-              <!-- Sunglasses: afrofuturist gold visor -->
-              <rect x="36" y="44" width="28" height="10" rx="5" fill="var(--accent, #f5c842)" />
-              <!-- Infinity loop (∞) woven into the visor bridge -->
-              <circle class="loop-pulse" cx="46" cy="49" r="3.5" fill="var(--surface-base, #0d1117)" />
-              <circle class="loop-pulse" cx="54" cy="49" r="3.5" fill="var(--surface-base, #0d1117)" />
-              <!-- Créoles: gold hoop earrings (dark rings = hoop openings) -->
-              <circle cx="30" cy="62" r="5" stroke="var(--surface-base, #0d1117)" stroke-width="2.5" />
-              <circle cx="70" cy="62" r="5" stroke="var(--surface-base, #0d1117)" stroke-width="2.5" />
-            </svg>
-            <span class="wordmark">boucle</span>
+          <div class="hero-copy">
+            <div class="logo-lockup" aria-label="boucle logo">
+              <span class="wordmark">boucle</span>
+            </div>
+
+            <h1>Great ideas deserve to ship.</h1>
+            <p class="hero-sub">
+              From a ticket in your forge to a feature in production. Boucle
+              works so you can live. You decide at the key moments, nothing else. 👍👎
+            </p>
+
+            <div class="hero-ctas">
+              <a class="btn btn--primary" href="#quick-start">Get started</a>
+              <a class="btn btn--ghost" href="#how-it-works">How it works</a>
+            </div>
           </div>
 
-          <h1>Great ideas deserve to ship.</h1>
-          <p class="hero-sub">
-            From a ticket in your forge to a feature in production. Boucle
-            works so you can live. You decide at the key moments, nothing else. 👍👎
-          </p>
-
-          <div class="hero-ctas">
-            <a class="btn btn--primary" href="#quick-start">Get started</a>
-            <a class="btn btn--ghost" href="#how-it-works">How it works</a>
+          <div class="hero-logo-video">
+            <!-- Animated brand logo, shown large on its own standalone column
+                 (desktop). Decorative brand identity: aria-hidden, the static
+                 PNG poster shows before the video loads and when autoplay is
+                 blocked or reduced motion is preferred. -->
+            <video
+              autoplay
+              loop
+              muted
+              playsinline
+              aria-hidden="true"
+              poster="/boucle.dev/boucle-logo.png"
+            >
+              <source src="/boucle.dev/boucle-logo.mp4" type="video/mp4" />
+            </video>
           </div>
         </div>
       </section>
@@ -1604,6 +1633,25 @@ back what you did:
           }
         });
       });
+
+      // Reduced motion — the animated hero logo is decorative motion. If the
+      // user prefers reduced motion, remove autoplay so only the static PNG
+      // poster is shown (pausing on the first frame).
+      const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const heroVideos = document.querySelectorAll('.hero-logo-video video');
+      const setAutoplay = (prefersReduced) => {
+        heroVideos.forEach((video) => {
+          if (prefersReduced) {
+            video.removeAttribute('autoplay');
+            video.pause();
+          } else {
+            video.setAttribute('autoplay', '');
+            video.play().catch(() => {});
+          }
+        });
+      };
+      setAutoplay(motionQuery.matches);
+      motionQuery.addEventListener('change', (e) => setAutoplay(e.matches));
     </script>
   </body>
 </html>
