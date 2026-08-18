@@ -32,6 +32,7 @@ boucle lives in your forge. GitHub, GitLab. No external tool, no dashboard.
 4. **It works** — boucle implements, builds, deploys a preview. I have nothing to do meanwhile. The agent works.
 5. **It's verified** — the reviewer checks the render, posts a verdict (PASS/FAIL) as a PR comment. If FAIL, it loops. If PASS, the PR is ready.
 6. **Approve, it's live** — I approve the PR (or boucle merges per config). The feature ships to production. It's live.
+7. **Lessons learned** — boucle captures what worked and what didn't from each loop, and applies those lessons to do better on the next feature.
 
 ## Quick start
 
