@@ -203,9 +203,11 @@ reinforce the afrofuturist identity without overwhelming the layout:
   `--text-primary`/`--text-secondary`. Decorative internals are `aria-hidden`;
   each mock has a `role="img"` + `aria-label` description.
 - **Controls** — prev/next arrow buttons (44×44px touch targets,
-  `aria-label="Previous step"` / `"Next step"`) and an interactive dot
-  indicator (`aria-label="Go to step N of 7"`). Keyboard ArrowLeft/ArrowRight
-  navigate when focus is inside the section. Each step carries
+  `aria-label="Previous step"` / `"Next step"`), a visible step-number
+  indicator ("2 / 7", tabular figures so it does not shift, `aria-live="polite"`
+  so screen readers announce changes), and an interactive dot indicator
+  (`aria-label="Go to step N of 7"`). Keyboard ArrowLeft/ArrowRight navigate
+  when focus is inside the section. Each step carries
   `role="group"`, `aria-roledescription="slide"`, and `aria-label="Step X of 7"`.
 - Matches the README mermaid diagram but simplified for a landing page.
 
