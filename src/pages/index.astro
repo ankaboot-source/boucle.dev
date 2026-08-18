@@ -465,12 +465,13 @@ const description = hero.data.metaDescription;
         border-radius: var(--radius);
         background: var(--border-neutral);
         cursor: pointer;
-        transition: background 0.2s ease;
+        transition: background 0.2s ease, width 0.2s ease;
       }
       .step-dot:hover {
         background: var(--accent-gold-dim);
       }
       .step-dot.is-active {
+        width: 28px;
         background: var(--accent);
       }
       .step-dot:focus-visible {
