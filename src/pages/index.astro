@@ -646,6 +646,48 @@ const description = hero.data.metaDescription;
         background: var(--surface-raised);
         border: 1px solid var(--border);
       }
+      .mock-preview-dual {
+        display: flex;
+        gap: 0.5rem;
+        align-items: stretch;
+      }
+      .mock-preview-frame {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        padding: 0.5rem;
+        background: var(--surface-base);
+        border: 1px solid var(--border);
+        min-width: 0;
+      }
+      .mock-preview-frame--mobile {
+        flex: 0 0 38%;
+      }
+      .mock-preview-frame--desktop {
+        flex: 1 1 auto;
+      }
+      .mock-preview-frame-label {
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+      }
+      .mock-e2e {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        margin: 0;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+      .mock-e2e-check {
+        width: 11px;
+        height: 11px;
+        flex: none;
+        color: var(--accent);
+      }
       .mock-reactions {
         display: flex;
         gap: 0.5rem;
@@ -1350,6 +1392,32 @@ const description = hero.data.metaDescription;
                                   <span class="mock-preview-line mock-preview-line--short"></span>
                                   <span class="mock-preview-block"></span>
                                 </div>
+                              );
+                            case 'previewDual':
+                              return (
+                                <div class="mock-preview-dual">
+                                  <div class="mock-preview-frame mock-preview-frame--mobile">
+                                    <span class="mock-preview-frame-label">{block.mobileLabel ?? 'Mobile'}</span>
+                                    <span class="mock-preview-line"></span>
+                                    <span class="mock-preview-line mock-preview-line--short"></span>
+                                    <span class="mock-preview-block"></span>
+                                  </div>
+                                  <div class="mock-preview-frame mock-preview-frame--desktop">
+                                    <span class="mock-preview-frame-label">{block.desktopLabel ?? 'Desktop'}</span>
+                                    <span class="mock-preview-line"></span>
+                                    <span class="mock-preview-line mock-preview-line--short"></span>
+                                    <span class="mock-preview-block"></span>
+                                  </div>
+                                </div>
+                              );
+                            case 'e2e':
+                              return (
+                                <p class="mock-e2e">
+                                  <svg class="mock-e2e-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true">
+                                    <path d="M4 12l5 5L20 6" />
+                                  </svg>
+                                  {block.text}
+                                </p>
                               );
                             case 'reactions':
                               return (

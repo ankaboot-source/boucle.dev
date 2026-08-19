@@ -28,7 +28,7 @@ boucle lives in your forge. GitHub, GitLab. No external tool, no dashboard.
 
 1. **Drop your idea in an issue** — I create an issue in my forge with a title and a description. It's just a normal ticket.
 2. **Receive a proposal with a preview** — boucle analyzes, writes a spec, and posts a comment on the issue with a preview. I see exactly what it will look like.
-3. **Validate with a thumb** — I react with a thumb up on the spec comment. No form, no CLI. Just an emoji.
+3. **Approve or amend** — I react with a thumbs up to approve the spec, or reply to amend it. No form, no CLI. Just an emoji or a comment.
 4. **It works** — boucle implements, builds, deploys a preview. I have nothing to do meanwhile. The agent works.
 5. **It's verified** — the reviewer checks the render, posts a verdict (PASS/FAIL) as a PR comment. If FAIL, it loops. If PASS, the PR is ready.
 6. **Approve, it's live** — I approve the PR (or boucle merges per config). The feature ships to production. It's live.

@@ -6,7 +6,7 @@ ariaLabel: "Forge mockup: a pull request with a PASS verdict comment."
 url: github.com/my-repo/pull/25
 blocks:
   - type: prTitle
-    text: Pull request — dark mode
+    text: Pull request — responsive mobile
   - type: verdict
     text: PASS
     className: mock-verdict--pass flow-verdict

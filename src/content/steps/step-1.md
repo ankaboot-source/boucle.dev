@@ -9,9 +9,9 @@ blocks:
     text: Issue
     className: mock-badge--issue
   - type: title
-    text: Add dark mode
+    text: Responsive mobile
   - type: desc
-    text: When I switch the site to dark mode, the colors don't match the theme.
+    text: The layout breaks on mobile, the cards overflow and the menu is unusable.
   - type: meta
     text: " me · open"
     avatarClass: ""

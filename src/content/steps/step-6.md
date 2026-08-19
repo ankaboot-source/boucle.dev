@@ -6,7 +6,9 @@ ariaLabel: "Forge mockup: a merged pull request with a live badge."
 url: github.com/my-repo/pull/25
 blocks:
   - type: prTitle
-    text: Pull request — dark mode
+    text: Pull request — responsive mobile
+  - type: e2e
+    text: End-to-end tests pass
   - type: deploy
   - type: deployLabel
     text: Feature deployed
