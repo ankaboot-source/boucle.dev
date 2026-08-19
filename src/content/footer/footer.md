@@ -1,5 +1,5 @@
 ---
-madePrefix: Made in Africa by
+madePrefix: Made in 🌍Africa by
 madeLabel: ankaboot.io
 madeHref: https://ankaboot.io
 navAriaLabel: Footer links
