@@ -77,7 +77,7 @@ dogfood consumer of the engine.
   reliable, Works while you sleep, No UI No CLI, Self-healing self-learning
   loop.
 - **Seven steps** (How boucle works): issue → spec+preview → thumb up → work → verdict → live → lessons learned.
-- **Quick start**: `curl -fsSL https://ankaboot-source.github.io/boucle.dev/install.sh | bash`.
+- **Quick start**: `curl -fsSL https://boucle.dev/install.sh | bash`.
 - **Attribution**: "Made in Africa by [ankaboot.io](https://ankaboot.io)".
 
 ## 7. See also

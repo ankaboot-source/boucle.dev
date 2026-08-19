@@ -30,15 +30,15 @@ const description = hero.data.metaDescription;
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="theme-color" content="#0d1117" />
-    <link rel="icon" type="image/png" href="/boucle.dev/boucle-logo.png" />
+    <link rel="icon" type="image/png" href="/boucle-logo.png" />
     <!-- Open Graph social-share preview (self-hosted assets only, GDPR-safe).
-         og:image is the absolute URL of the static logo PNG, including the
-         /boucle.dev/ base path so social crawlers resolve it correctly. -->
+         og:image is the absolute URL of the static logo PNG at the apex domain
+         https://boucle.dev/ so social crawlers resolve it correctly. -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content="https://ankaboot-source.github.io/boucle.dev/boucle-logo.png" />
-    <meta property="og:url" content="https://ankaboot-source.github.io/boucle.dev/" />
+    <meta property="og:image" content="https://boucle.dev/boucle-logo.png" />
+    <meta property="og:url" content="https://boucle.dev/" />
     <style>
       /* Self-hosted fonts — no Google Fonts CDN (GDPR).
          Unbounded (display) and Sora (body) are variable fonts (wght axis),
@@ -48,28 +48,28 @@ const description = hero.data.metaDescription;
         font-style: normal;
         font-weight: 200 900;
         font-display: swap;
-        src: url('/boucle.dev/fonts/unbounded.woff2') format('woff2');
+        src: url('/fonts/unbounded.woff2') format('woff2');
       }
       @font-face {
         font-family: 'Sora';
         font-style: normal;
         font-weight: 400 800;
         font-display: swap;
-        src: url('/boucle.dev/fonts/sora.woff2') format('woff2');
+        src: url('/fonts/sora.woff2') format('woff2');
       }
       @font-face {
         font-family: 'Space Mono';
         font-style: normal;
         font-weight: 400;
         font-display: swap;
-        src: url('/boucle.dev/fonts/space-mono-400.woff2') format('woff2');
+        src: url('/fonts/space-mono-400.woff2') format('woff2');
       }
       @font-face {
         font-family: 'Space Mono';
         font-style: normal;
         font-weight: 700;
         font-display: swap;
-        src: url('/boucle.dev/fonts/space-mono-700.woff2') format('woff2');
+        src: url('/fonts/space-mono-700.woff2') format('woff2');
       }
 
       :root {
@@ -1257,7 +1257,7 @@ const description = hero.data.metaDescription;
                  so assistive tech skips it. Animated GIFs play natively and
                  cannot be paused by prefers-reduced-motion. -->
             <img
-              src="/boucle.dev/boucle-logo.gif"
+              src="/boucle-logo.gif"
               width="540"
               height="540"
               alt=""
