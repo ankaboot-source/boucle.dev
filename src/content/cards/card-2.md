@@ -4,5 +4,5 @@ featured: false
 title: Deterministic and reliable
 pain: An agent that decides everything, with no human review.
 answer: Deterministic, therefore reliable. You intervene at the right moment, at the decision points.
-icon: "/boucle.dev/icons/card-2.svg"
+icon: "/icons/card-2.svg"
 ---

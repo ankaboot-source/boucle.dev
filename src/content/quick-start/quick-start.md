@@ -4,7 +4,7 @@ sub: One command, and the loop takes over.
 tablistAriaLabel: Install method
 onelinerTab: Oneliner
 promptTab: Prompt
-onelinerCode: curl -fsSL https://ankaboot-source.github.io/boucle.dev/install.sh | bash
+onelinerCode: curl -fsSL https://boucle.dev/install.sh | bash
 promptCode: |-
   Install boucle on this GitLab/GitHub repository. Execute these steps and report
   back what you did:

@@ -39,7 +39,7 @@ boucle lives in your forge. GitHub, GitLab. No external tool, no dashboard.
 One command, and the loop takes over.
 
 ```sh
-curl -fsSL https://ankaboot-source.github.io/boucle.dev/install.sh | bash
+curl -fsSL https://boucle.dev/install.sh | bash
 ```
 
 Then create an issue in your forge and tag it `boucle:triage` — the loop starts.
@@ -66,7 +66,7 @@ npm run build
 npm run preview
 ```
 
-The site is deployed to GitHub Pages under `/boucle.dev/`.
+The site is deployed to GitHub Pages at the custom domain https://boucle.dev/.
 
 ## Editing content with Sveltia CMS
 
@@ -75,13 +75,13 @@ Every text **and icon** on the landing page is editable through the visual
 opening a PR manually. It is a client-side, Git-based editor served from the
 official CDN, running **only** at `/admin/` (never on the public page).
 
-1. Open `https://ankaboot-source.github.io/boucle.dev/admin/`.
+1. Open `https://boucle.dev/admin/`.
 2. Sign in with a GitHub Personal Access Token that has `Contents: Read and
    write` access to this repository (the "Sign in with Token" button links to
    the token page with the required scopes pre-selected).
 3. Pick a collection (Hero, Steps, Cards, Quick start, Footer…) and edit any
    text field — or, for Steps, paste new inline SVG markup into an `Icon` field
-   (for Cards, the `Icon` field takes an asset path like `/boucle.dev/icons/card-1.svg`).
+   (for Cards, the `Icon` field takes an asset path like `/icons/card-1.svg`).
 4. Save; Sveltia commits the change to the repository and the site redeploys.
 
 > **SVELTIA_PAT**: the `SVELTIA_PAT` environment variable is reserved for the

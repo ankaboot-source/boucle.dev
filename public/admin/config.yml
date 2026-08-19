@@ -163,7 +163,7 @@ collections:
       - name: icon
         label: Icon (asset path)
         widget: string
-        hint: Path to the card icon SVG asset, e.g. /boucle.dev/icons/card-1.svg.
+        hint: Path to the card icon SVG asset, e.g. /icons/card-1.svg.
 
   # ---------- Quick start (single file) ----------
   - name: quickStart

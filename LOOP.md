@@ -42,7 +42,7 @@ flowchart LR
 - **Mechanism:** token-less declarative deploy. The worker pushes the build
   output (`dist/`) to the `gh-pages` branch using the bot PAT
   (`BOUCLE_TOKEN`, `contents: write`). No `CLOUDFLARE_API_TOKEN` needed.
-- **Site URL:** `https://ankaboot-source.github.io/boucle.dev/` (served
+- **Site URL:** `https://boucle.dev/` (served
   from the `gh-pages` branch, root).
 - **No per-branch preview:** GitHub Pages has no per-branch previews, so
   the reviewer falls back to **diff review**.
