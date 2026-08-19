@@ -2,7 +2,7 @@
 order: 2
 featured: false
 title: Deterministic and reliable
-pain: An agent that decides everything, with no human review.
-answer: Deterministic, therefore reliable. You intervene at the right moment, at the decision points.
-icon: "/icons/card-2.svg"
+pain: An agent that interprets instructions erratically, wasting time and tokens or breaking the product.
+answer: Deterministic, with formalized formats, built-in checks and gated steps. You intervene only where judgment matters.
+icon: /icons/card-2.svg
 ---
