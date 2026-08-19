@@ -188,7 +188,7 @@ reinforce the afrofuturist identity without overwhelming the layout:
 - 7-step flow presented as a **single-step animated slideshow** (loop):
   1. Drop your idea in an issue
   2. Receive a proposal with a preview
-  3. Validate with a thumb
+  3. Approve or amend
   4. It works
   5. It's verified
   6. Approve, it's live

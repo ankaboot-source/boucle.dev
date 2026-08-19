@@ -76,7 +76,7 @@ dogfood consumer of the engine.
 - **Five promises** (Why boucle): Lives in your forge, Deterministic and
   reliable, Works while you sleep, No UI No CLI, Self-healing self-learning
   loop.
-- **Seven steps** (How boucle works): issue → spec+preview → thumb up → work → verdict → live → lessons learned.
+- **Seven steps** (How boucle works): issue → spec+preview → approve or amend → work → verdict → live → lessons learned.
 - **Quick start**: `curl -fsSL https://boucle.dev/install.sh | bash`.
 - **Attribution**: "Made in Africa by [ankaboot.io](https://ankaboot.io)".
 

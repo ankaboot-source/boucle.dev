@@ -1,7 +1,7 @@
 ---
 order: 3
-title: Validate with a thumb
-description: React with a thumbs up on the spec comment. No form, no CLI. Just an emoji.
+title: Approve or amend
+description: React with a thumbs up to approve the spec, or reply to amend it. No form, no CLI. Just an emoji or a comment.
 ariaLabel: "Forge mockup: the thumbs up reaction activated on the spec comment."
 url: github.com/my-repo/issues/12
 blocks:

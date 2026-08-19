@@ -52,6 +52,12 @@ const mockBlock = z.discriminatedUnion('type', [
   z.object({ type: z.literal('comment'), text: z.string() }),
   z.object({ type: z.literal('preview') }),
   z.object({
+    type: z.literal('previewDual'),
+    mobileLabel: z.string().optional(),
+    desktopLabel: z.string().optional(),
+  }),
+  z.object({ type: z.literal('e2e'), text: z.string() }),
+  z.object({
     type: z.literal('reactions'),
     items: z.array(z.object({ label: z.string(), active: z.boolean().optional() })),
   }),

@@ -10,6 +10,8 @@ blocks:
     avatarClass: mock-avatar--gold
   - type: comment
     text: Here's the spec and a preview of what it will look like.
-  - type: preview
+  - type: previewDual
+    mobileLabel: Mobile
+    desktopLabel: Desktop
 icon: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M4 6h16M4 12h16M4 18h10\" /></svg>"
 ---

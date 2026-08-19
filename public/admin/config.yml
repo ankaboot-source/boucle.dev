@@ -111,6 +111,8 @@ collections:
               - { label: Author, value: author }
               - { label: Comment, value: comment }
               - { label: Preview, value: preview }
+              - { label: Preview dual (mobile + desktop), value: previewDual }
+              - { label: E2E verified, value: e2e }
               - { label: Reactions, value: reactions }
               - { label: Hint, value: hint }
               - { label: Status, value: status }
@@ -120,6 +122,8 @@ collections:
               - { label: Deploy label, value: deployLabel }
               - { label: Live badge, value: liveBadge }
           - { name: text, label: Text, widget: string, required: false }
+          - { name: mobileLabel, label: Mobile label, widget: string, required: false }
+          - { name: desktopLabel, label: Desktop label, widget: string, required: false }
           - { name: className, label: CSS class, widget: string, required: false }
           - { name: avatarClass, label: Avatar CSS class, widget: string, required: false }
           - name: items
