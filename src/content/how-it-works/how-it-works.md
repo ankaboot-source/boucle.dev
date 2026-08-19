@@ -1,6 +1,6 @@
 ---
 title: How boucle works
-sub: boucle lives in your forge. GitHub, GitLab. No external tool, no dashboard.
+sub: Watch your forge turn tickets into shipped feature
 logosAriaLabel: Supported forges
 githubSrc: /github-logo.png
 githubAlt: GitHub
