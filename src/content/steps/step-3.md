@@ -12,5 +12,5 @@ blocks:
       - label: "👀 1"
   - type: hint
     text: "Reaction added: boucle starts."
-icon: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M7 10v10M7 10l3-6a2 2 0 0 1 2-1h1.5A1.5 1.5 0 0 1 15 4.5V9h4a2 2 0 0 1 2 2v1a6 6 0 0 1-1 3.3L18 20H8\" /></svg>"
+icon: "/icons/step-3.svg"
 ---

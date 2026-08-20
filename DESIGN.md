@@ -177,7 +177,7 @@ reinforce the afrofuturist identity without overwhelming the layout:
 - Subheadline: "From a ticket in your forge to a feature in production. Boucle works so you can live. You decide at the key moments, nothing else. 👍👎"
 - **Forge badges** — a row of "GitHub" and "GitLab" badges directly under the
   subheadline. Each is a 6px-radius chip on `--surface-raised` with a neutral
-  `--border-neutral` border, a `--shadow-subtle`, a small 16px inline SVG mark,
+  `--border-neutral` border, a `--shadow-subtle`, a small 16px SVG mark,
   and a 0.8rem label. Hover shifts the label and border to gold. They give an
   at-a-glance "Lives in your forge" signal to visitors who recognize the forges.
 - CTA: "Get started" (gold button, 6px radius, links to quick start) + "How it works" (ghost link, 6px radius).
@@ -223,7 +223,7 @@ reinforce the afrofuturist identity without overwhelming the layout:
 - GitHub and GitLab logos side by side on ≥768px (centered, `gap: 3rem`),
   stacked vertically and centered below 768px. Large but proportionate
   (`clamp(120px, 20vw, 180px)` wide).
-- Logos are **inline SVG**, single-color via `currentColor` (white on dark),
+- Logos are **external SVG assets**, single-color via `currentColor` (white on dark),
   each carrying `role="img"` and a descriptive `aria-label` ("GitHub logo",
   "GitLab logo"). No raster images.
 - Each logo links to its forge (github.com / gitlab.com); hover shifts to gold.
@@ -279,7 +279,7 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 ## 6. Iconography
 
-- All icons are geometric inline SVGs (stroke-based, 1.5px, `currentColor`),
+- All icons are geometric external SVG assets (stroke-based, 1.5px, `currentColor`),
   matching the logo's abstract geometric style.
 - Icon set: loop/issue, spec, implement, deploy, plus small meta icons (docs, GitHub, lock) and the forge logos (GitHub, GitLab) in the "Lives in your forge" section.
 - Icons use `--accent-gold` or `--text-secondary`; violet is reserved for ambient

@@ -4,9 +4,9 @@
 # Every collection mirrors an Astro content collection (src/content/**, schema
 # in src/content.config.ts). Each field below maps 1:1 to a frontmatter key so
 # that editing through the CMS rewrites the same files the Astro build reads,
-# with no data loss. Text AND icons are editable: every step carries its inline
-# SVG markup in an `icon` frontmatter string; every card references its icon as
-# an asset path (public/icons/card-N.svg).
+# with no data loss. Text AND icons are editable: every step references its
+# icon as an asset path (public/icons/step-N.svg); every card references its
+# icon as an asset path (public/icons/card-N.svg).
 #
 # Authentication: GitHub backend using a Personal Access Token. The token is
 # entered by the editor at the "Sign in with Token" prompt and stored in the
@@ -92,9 +92,9 @@ collections:
       - { name: ariaLabel, label: Mockup aria-label, widget: string }
       - { name: url, label: Mockup URL (optional), widget: string, required: false }
       - name: icon
-        label: Icon (inline SVG)
-        widget: text
-        hint: Paste the full <svg>…</svg> markup here. It renders as the step icon.
+        label: Icon (asset path)
+        widget: string
+        hint: Path to the step icon SVG asset, e.g. /icons/step-1.svg.
       - name: blocks
         label: Forge mockup blocks
         widget: list
