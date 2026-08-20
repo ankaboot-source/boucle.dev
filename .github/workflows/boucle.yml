@@ -73,6 +73,15 @@ on:
       BOUCLE_REVIEW_MODE:
         description: "Review mode (preview|diff)"
         required: false
+      BOUCLE_E2E_COMMAND:
+        description: "Command-mode e2e verify command (replaces URL-probing agent)"
+        required: false
+      BOUCLE_E2E_COMMAND_TIMEOUT:
+        description: "Max seconds for the e2e command (default 3600)"
+        required: false
+      BOUCLE_E2E_COMMAND_EVIDENCE_PARSER:
+        description: "Command that takes the verify log as $1 and emits markdown evidence"
+        required: false
       BOUCLE_EXTERNAL_DEPLOY_WAIT:
         description: "Seconds to wait for external deploy CI"
         required: false
@@ -81,6 +90,9 @@ on:
         required: false
       BOUCLE_PREVIEW_MARKER_PATH:
         description: "Path for SHA marker probe file"
+        required: false
+      BOUCLE_CMD_ARGS:
+        description: "Args for /boucle command jobs (e.g. role for cmd-log)"
         required: false
 
 # ── Environment ────────────────────────────────────────────────────────────────
@@ -93,6 +105,11 @@ env:
   BOUCLE_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
   BOUCLE_PIPELINE_SOURCE: ${{ github.event_name }}
   BOUCLE_JOB_ID: ${{ github.run_id }}
+  # Current engine version, tracked as a forge Variable (GitHub Actions
+  # Variable). bin/update reads it to know the current version and writes it
+  # back after a successful sync. The submodule pointer is the fallback for
+  # submodule installs. No .boucle-version file.
+  BOUCLE_VERSION: ${{ vars.BOUCLE_VERSION }}
   # There is no `github.run_url` property — the expression resolved to an empty
   # string on every run. lib/boucle-ci.sh rebuilds the URL from GITHUB_RUN_ID
   # when this is empty, so the link survived, but spell it correctly here so the
@@ -112,7 +129,7 @@ env:
   BOUCLE_BOT_USERNAME: ${{ vars.BOUCLE_BOT_USERNAME || 'up-bot' }}
   BOUCLE_BOT_ID: ${{ vars.BOUCLE_BOT_ID || '' }}
   BOUCLE_RUNS_ON: ${{ vars.BOUCLE_RUNS_ON || 'ubuntu-latest' }}
-  BOUCLE_SPEC_PROFILE: ${{ vars.BOUCLE_SPEC_PROFILE || 'product' }}
+  BOUCLE_SPEC_PROFILE: ${{ vars.BOUCLE_SPEC_PROFILE || 'strict' }}
   BOUCLE_UPDATE_MODE: ${{ vars.BOUCLE_UPDATE_MODE || 'release' }}
   BOUCLE_MAX_PARALLEL_ISSUES: ${{ vars.BOUCLE_MAX_PARALLEL_ISSUES || '5' }}
   BOUCLE_MAX_ITERATIONS: ${{ vars.BOUCLE_MAX_ITERATIONS || '5' }}
@@ -144,6 +161,9 @@ env:
   BOUCLE_VISION_ROLES: ${{ vars.BOUCLE_VISION_ROLES || 'triage,worker,reviewer' }}
   BOUCLE_DEPLOY_MODE: ${{ vars.BOUCLE_DEPLOY_MODE || 'self' }}
   BOUCLE_REVIEW_MODE: ${{ vars.BOUCLE_REVIEW_MODE || 'preview' }}
+  BOUCLE_E2E_COMMAND: ${{ vars.BOUCLE_E2E_COMMAND || '' }}
+  BOUCLE_E2E_COMMAND_TIMEOUT: ${{ vars.BOUCLE_E2E_COMMAND_TIMEOUT || '3600' }}
+  BOUCLE_E2E_COMMAND_EVIDENCE_PARSER: ${{ vars.BOUCLE_E2E_COMMAND_EVIDENCE_PARSER || '' }}
   BOUCLE_EXTERNAL_DEPLOY_WAIT: ${{ vars.BOUCLE_EXTERNAL_DEPLOY_WAIT || '600' }}
   BOUCLE_REVIEW_CHECKS_WAIT: ${{ vars.BOUCLE_REVIEW_CHECKS_WAIT || '900' }}
   BOUCLE_PREVIEW_MARKER_PATH: ${{ vars.BOUCLE_PREVIEW_MARKER_PATH || '__boucle_commit__.txt' }}
@@ -398,6 +418,8 @@ jobs:
           path: |
             .boucle/**/agent-output.log
             .boucle-state/**/agent-output.log
+            # jcode session files for interactive takeover (#54 item 2).
+            .boucle-state/**/session/
           if-no-files-found: ignore
           retention-days: 7
 
@@ -409,6 +431,19 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.event.inputs.BOUCLE_ROLE == 'worker')
       || (github.event_name == 'issues' && contains(github.event.action, 'labeled') && contains(github.event.label.name, 'boucle:todo'))
     timeout-minutes: 30
+    # Job-level concurrency: serialize ALL worker runs for the same issue,
+    # regardless of trigger source (workflow_dispatch from chain_to_role OR
+    # issues:labeled from set_boucle_label). The workflow-level concurrency
+    # splits by event source (boucle-issue-<N> vs boucle-dispatch-<N>), so
+    # without this job-level block the two trigger paths run SIMULTANEOUSLY
+    # — two workers on the same branch, duplicate "build failed" comments,
+    # racing commits. This mirrors GitLab's
+    # `resource_group: boucle-issue-$BOUCLE_ISSUE` on the worker job.
+    # cancel-in-progress: false queues the second run instead of cancelling
+    # the first — a worker mid-build must not be killed by a re-trigger.
+    concurrency:
+      group: boucle-issue-${{ github.event.inputs.BOUCLE_ISSUE || github.event.issue.number }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -471,6 +506,8 @@ jobs:
           path: |
             .boucle/**/agent-output.log
             .boucle-state/**/agent-output.log
+            # jcode session files for interactive takeover (#54 item 2).
+            .boucle-state/**/session/
           if-no-files-found: ignore
           retention-days: 7
       - name: Save boucle state cache
@@ -487,6 +524,14 @@ jobs:
     if: |
       github.event_name == 'workflow_dispatch' && github.event.inputs.BOUCLE_ROLE == 'reviewer'
     timeout-minutes: 30
+    # Job-level concurrency: serialize reviewer runs per issue (mirrors
+    # GitLab's resource_group: boucle-issue-$BOUCLE_ISSUE). The reviewer
+    # only triggers on workflow_dispatch today, but this is defense-in-depth
+    # — a future trigger path (e.g. pull_request_review) would otherwise
+    # race the workflow_dispatch re-trigger path.
+    concurrency:
+      group: boucle-issue-${{ github.event.inputs.BOUCLE_ISSUE }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -536,6 +581,8 @@ jobs:
           path: |
             .boucle/**/agent-output.log
             .boucle-state/**/agent-output.log
+            # jcode session files for interactive takeover (#54 item 2).
+            .boucle-state/**/session/
           if-no-files-found: ignore
           retention-days: 7
 
@@ -637,12 +684,17 @@ jobs:
           [ -d .boucle ] && export BOUCLE_HOME="$PWD/.boucle"
           $BOUCLE_HOME/bin/boucle-ci post-merge
 
-  # ── catchup: close issue after merge, cascade parent ─────────────────────────
+  # ── catchup: direct merge recovery → chain to post-merge ────────────────
+  # Runs on a direct PR merge (pull_request closed+merged) OR via
+  # workflow_dispatch from dispatch (which extracts the IID from the branch).
+  # Extracts BOUCLE_ISSUE from the branch name (boucle/<iid>), posts an audit
+  # note, sets boucle:merging, and chains to post-merge for deploy + e2e.
   catchup:
     runs-on: ubuntu-latest
     continue-on-error: true  # boucle manages its own retries — exit 1 is normal (dispatch ABORT, reviewer re-trigger, etc.)
     if: |
-      github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+      (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
+      || (github.event_name == 'workflow_dispatch' && github.event.inputs.BOUCLE_ROLE == 'catchup')
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -677,9 +729,27 @@ jobs:
           [ "$_BRANCH" = "$BOUCLE_DEFAULT_BRANCH" ] || exit 0
           bash "$PWD/.boucle/bin/update" || echo "[boucle] WARN: self-update failed, continuing with current version" >&2
       - name: Catchup
+        env:
+          # On workflow_dispatch the IID is in the inputs; on a direct
+          # pull_request event it must be extracted from the branch name
+          # (boucle/<iid>), which dispatch normally does but the direct
+          # catchup path bypasses.
+          BOUCLE_ISSUE: ${{ github.event.inputs.BOUCLE_ISSUE || '' }}
         run: |
           export BOUCLE_PROJECT_ID="${{ github.repository }}"
           [ -d .boucle ] && export BOUCLE_HOME="$PWD/.boucle"
+          # Extract BOUCLE_ISSUE from the PR branch if not set (direct
+          # pull_request event path — dispatch chains via workflow_dispatch
+          # and sets it in inputs, but the direct path does not).
+          if [ -z "${BOUCLE_ISSUE:-}" ]; then
+            BRANCH="${{ github.event.pull_request.head.ref }}"
+            BOUCLE_ISSUE=$(printf '%s' "$BRANCH" | sed -n 's/^boucle\/\([0-9]\+\).*/\1/p')
+            if [ -z "$BOUCLE_ISSUE" ]; then
+              echo "Catchup: branch '$BRANCH' is not a boucle branch — skipping."
+              exit 0
+            fi
+            export BOUCLE_ISSUE
+          fi
           $BOUCLE_HOME/bin/boucle-ci catchup
 
   # ── deploy: build + deploy to Cloudflare Pages (on push to default) ───────────
@@ -696,7 +766,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
+          # No cache: 'npm' — boucle is a shell project with no package-lock.json.
+          # setup-node's npm cache requires a lock file and fails the job without
+          # one. The Install dependencies step below already no-ops when there is
+          # no lock file, so there is nothing to cache anyway.
       - name: Install dependencies
         run: "[ -f package-lock.json ] && npm ci || true"
       - name: Self-update
@@ -723,6 +796,13 @@ jobs:
     if: |
       github.event_name == 'workflow_dispatch' && github.event.inputs.BOUCLE_ROLE == 'e2e'
     timeout-minutes: 20
+    # Job-level concurrency: serialize e2e runs per issue (mirrors GitLab's
+    # resource_group: boucle-issue-$BOUCLE_ISSUE). Defense-in-depth: the e2e
+    # only triggers on workflow_dispatch today, but a future trigger path
+    # would otherwise race the workflow_dispatch re-trigger path.
+    concurrency:
+      group: boucle-issue-${{ github.event.inputs.BOUCLE_ISSUE }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -771,8 +851,94 @@ jobs:
           path: |
             .boucle/**/agent-output.log
             .boucle-state/**/agent-output.log
+            # jcode session files for interactive takeover (#54 item 2).
+            .boucle-state/**/session/
           if-no-files-found: ignore
           retention-days: 7
+
+  # ── /boucle interactive commands (#61) ─────────────────────────────────────
+  # Forge-native observability: a human posts `/boucle <verb>` as an issue
+  # comment; dispatch parses it, authorizes the actor, and chains to one of
+  # these fast jobs via chain_to_role (which sets BOUCLE_ROLE=cmd-log etc.).
+  # Each verb is a SEPARATE job with a per-issue concurrency group so the
+  # dispatch job never blocks on an artifact fetch + comment post. Lightweight:
+  # no agent, no consumer checkout — only lib/boucle.sh + forge helpers +
+  # bin/health.
+  cmd-log:
+    runs-on: ${{ vars.BOUCLE_RUNS_ON || 'ubuntu-latest' }}
+    continue-on-error: true  # boucle manages its own retries — exit 1 is normal
+    if: |
+      github.event_name == 'workflow_dispatch' && github.event.inputs.BOUCLE_ROLE == 'cmd-log'
+    timeout-minutes: 2
+    concurrency:
+      group: boucle-cmd-${{ github.event.inputs.BOUCLE_ISSUE }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Setup
+        run: |
+          apt-get update -qq && apt-get install -y -qq curl jq git unzip
+          npm install -g glab 2>/dev/null || true
+      - name: Cmd-log
+        env:
+          BOUCLE_ISSUE: ${{ github.event.inputs.BOUCLE_ISSUE }}
+          BOUCLE_CMD_ARGS: ${{ github.event.inputs.BOUCLE_CMD_ARGS }}
+        run: |
+          export BOUCLE_PROJECT_ID="${{ github.repository }}"
+          [ -d .boucle ] && export BOUCLE_HOME="$PWD/.boucle"
+          $BOUCLE_HOME/bin/boucle-ci cmd-log
+
+  cmd-status:
+    runs-on: ubuntu-latest
+    continue-on-error: true  # boucle manages its own retries — exit 1 is normal
+    if: |
+      github.event_name == 'workflow_dispatch' && github.event.inputs.BOUCLE_ROLE == 'cmd-status'
+    timeout-minutes: 2
+    concurrency:
+      group: boucle-cmd-${{ github.event.inputs.BOUCLE_ISSUE }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Setup
+        run: |
+          apt-get update -qq && apt-get install -y -qq curl jq git
+          npm install -g glab 2>/dev/null || true
+      - name: Cmd
+        env:
+          BOUCLE_ISSUE: ${{ github.event.inputs.BOUCLE_ISSUE }}
+        run: |
+          export BOUCLE_PROJECT_ID="${{ github.repository }}"
+          [ -d .boucle ] && export BOUCLE_HOME="$PWD/.boucle"
+          $BOUCLE_HOME/bin/boucle-ci cmd-status
+
+  cmd-help:
+    runs-on: ubuntu-latest
+    continue-on-error: true  # boucle manages its own retries — exit 1 is normal
+    if: |
+      github.event_name == 'workflow_dispatch' && github.event.inputs.BOUCLE_ROLE == 'cmd-help'
+    timeout-minutes: 2
+    concurrency:
+      group: boucle-cmd-${{ github.event.inputs.BOUCLE_ISSUE }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Setup
+        run: |
+          apt-get update -qq && apt-get install -y -qq curl jq
+          echo "npm install -g glab 2>/dev/null || true"
+      - name: Cmd
+        env:
+          BOUCLE_ISSUE: ${{ github.event.inputs.BOUCLE_ISSUE }}
+        run: |
+          export BOUCLE_PROJECT_ID="${{ github.repository }}"
+          [ -d .boucle ] && export BOUCLE_HOME="$PWD/.boucle"
+          $BOUCLE_HOME/bin/boucle-ci cmd-help
 
   # ── doctor: periodic recovery (schedule) ──────────────────────────────────────
   doctor:

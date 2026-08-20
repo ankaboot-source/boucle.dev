@@ -59,6 +59,15 @@ Post the comment or verdict FIRST, then refine. An incomplete draft posted is
 ALWAYS better than a refinement never posted. Step-budget waste (the agent
 exhausts its budget without posting) is bug #1. (LESSONS.yml lesson #1, #2, #5.)
 
+**"Post early" means minimal but meaningful, not an empty placeholder.** A
+draft MUST contain at least the content the human needs to act on it — for
+triage, a rough `## Analysis` section (2-3 sentences restating the issue) and
+a `## Disposition`. An empty placeholder ("DRAFT — first-pass triage,
+refining next.") is noise the human cannot act on: no analysis, no questions,
+no criteria. The agent MUST read the issue body (already in its prompt as
+`$BOUCLE_ISSUE_BODY`) before posting — "post early" does NOT mean "post
+before reading the issue". (LESSONS.yml lesson #99.)
+
 ### I5 — Idempotence
 
 All `bin/*` scripts and label writes MUST be idempotent. Re-running a script
@@ -132,6 +141,7 @@ owns both sides — the question is meaningless).
 | `boucle:split` | Parent issue split into sub-issues, waiting for them | bot |
 | `boucle:dnd` | Transient flag: spec gate auto-validated during DND window | (rides along) |
 | `boucle:autonomous` | Transient flag: spec gate skipped per-issue opt-in | (rides along) |
+| `boucle:recurring` | Context tag: issue is part of a recurring bug class (non-blocking, survives transitions) | (rides along) |
 | `boucle:board` | The status-board issue (never dispatched) | — |
 | `boucle:scheduled` | Issue created by a schedule (cron template) | — |
 
@@ -237,22 +247,25 @@ harness MUST use the markers correctly or dispatch will misroute its writes.
 | `<!-- boucle:e2e-fail v=1 iid=N followup=M -->` | `v=1 iid=<origin-IID> followup=<followup-IID>` | e2e.sh:291 (on follow-up issue created by e2e FAIL) | (informational — links follow-up to origin) | Posted on the follow-up issue created when e2e FAILs, linking it to the original issue for cascade. |
 | `<!-- boucle:e2e-escalation v=1 iid=N verdict=X -->` | `v=1 iid=<IID> verdict=<uncertain\|empty>` | e2e.sh:321,357 (on e2e UNCERTAIN or no-verdict) | (informational — structured escalation) | Posted when e2e escalates to human due to UNCERTAIN verdict or no verdict (step exhaustion). Records the verdict reason. |
 | `<!-- boucle:sub-issue v=1 -->` | `v=1` | triage (split operation) | triage.sh:566 (skip in parent-body parsing) | Marks a sub-issue body. Used to avoid parsing sub-issue content as parent-issue content. |
+| `<!-- boucle:recurring v=1 refs=N,M -->` | `v=1 refs=<comma-separated-IIDs>` | triage agent (optional `## Recurring theme` section) | triage.sh (parse + label), worker.sh (inject refs as context) | Recurring-theme declaration: flags the issue as part of a recurring class and cites prior closed issues. CI applies `boucle:recurring` (context tag surviving transitions). Worker receives prior-issue summaries to find the root cause. Non-blocking: never gates. |
 
 ### 3.5 Operational markers
 
 | Marker | Format | Written by | Parsed by | Purpose |
 |---|---|---|---|---|
 | `<!-- boucle:board v=1 -->` | `v=1` | boucle.sh:268 (status board body) | (informational — identifies the board issue) | Marks the status-board issue body. Dispatch skips `boucle:board`-labelled issues; this marker is the body's stamp. |
-| `<!-- boucle:catchup v=1 iid=N state=X target=Y -->` | `v=1 iid=<IID> state=<from> target=<to>` | catchup.sh:180 (audit note on direct merge) | (informational — audit trail) | Posted when an MR is merged directly (not via the approval flow). Records the state at merge time for audit. |
+| `<!-- boucle:catchup v=1 iid=N state=X target=Y -->` | `v=1 iid=<IID> state=<from> target=<to>` | catchup.sh (audit note on direct merge) | (informational — audit trail) | Posted when an MR is merged directly (not via the approval flow). Records the state at merge time for audit. The `target` field is the terminal state the loop WOULD have applied pre-e2e-on-direct-merge; the actual terminal state is decided by the e2e verdict (PASS→done, FAIL/UNCERTAIN→human). |
 | `<!-- boucle:commit sha=<hex> -->` | `sha=<short-sha>` | worker.sh:421-422 (in MR description + build marker) | (preview freshness assertion — worker.sh) | Anchors the MR/build to a commit SHA for preview freshness check (invariant I6-adjacent). |
 | `<!-- boucle:diagnostic v=1 iid=N class=X trigger=Y -->` | `v=1 iid=<IID> class=<failure-class> trigger=<trigger>` | boucle.sh:475 (escalation diagnostic) | (informational — structured escalation) | Replaces the generic "human intervention needed" note with a structured diagnostic (failure class + evidence + recommended action). |
 | `<!-- boucle:schedule id=<name> -->` | `id=<schedule-name>` | boucle.sh:201 (on scheduled issues) | boucle.sh (dedup — last firing marker) | Marks a scheduled issue with its template name. Used to prevent duplicate firings across sweeps. |
+| `<!-- boucle:state v=1 -->` | `v=1` | boucle.sh:436 (`boucle_state_save`, on worker exit) | boucle.sh:462 (`boucle_state_restore`, on a cold state cache) | Per-issue loop state (iteration log, approach, tried-and-rejected, `last-outcome`) persisted on the issue so it survives an ephemeral runner, where `BOUCLE_STATE_CACHE` does not. Collapsed, and excluded from the notes injected into agent prompts (bin/jc) so it is never re-billed as prompt input. |
 | `<!-- boucle:conflict-retry N -->` | `N=<retry-count>` | boucle.sh:1099 (on re-trigger after rebase conflict) | boucle.sh:1085 (jq parse, count retries) | Posted on each re-trigger after a rebase conflict. Bounded retry count — after N retries, the conflict is handed to the worker agent for resolution. |
 | `<!-- boucle:file-blocked v=1 on=N paths=... -->` | `v=1 on=<active-issue> paths=<overlap>` | gates.sh:106 (check_file_gate — defer on file overlap) | gates.sh:192 (unblock path, last marker) | The file-impact gate (LESSONS.yml lesson #62): posted when a worker would edit files claimed by an in-flight sibling issue. The unblock path fires when the named blocker closes. |
-| `<!-- boucle:files v=1 paths=... -->` | `v=1 paths=<impacted-files>` | triage agent (embedded in the spec comment's `## Fichiers impactés` section); worker job (lib/boucle-ci/worker.sh, refresh in a separate note after the branch diff) | worker job (jq, find last marker note excluding the spec comment) | File-impact declaration (LESSONS.yml lesson #62): the triage predicts the impacted files inside its spec comment, the worker refreshes the claim in a separate machine note with the actual branch diff. Consumed by `check_file_gate` to defer parallel workers on overlap. |
+| `<!-- boucle:files v=1 paths=... -->` | `v=1 paths=<impacted-files>` | triage agent (embedded in the spec comment's `## Impacted files` section); worker job (lib/boucle-ci/worker.sh, refresh in a separate note after the branch diff) | worker job (jq, find last marker note excluding the spec comment) | File-impact declaration (LESSONS.yml lesson #62): the triage predicts the impacted files inside its spec comment, the worker refreshes the claim in a separate machine note with the actual branch diff. Consumed by `check_file_gate` to defer parallel workers on overlap. |
 | `<!-- boucle:evidence-pack v=1 -->` | `v=1` | bin/build-evidence-pack (header first line of the evidence pack) | — | Marks the auto-generated evidence pack (charter doc snapshot + diff brief) attached to escalations. |
 | `<!-- boucle:allow-list v=1 user=<username> -->` | `v=1 user=<author-username>` | boucle.sh (check_allow_list_gate — rejection note) | — | Posted on an issue whose resolved human reporter is not in `BOUCLE_ALLOWED_USERS`. The issue is not accepted by the loop (no role triggered). Fail-open when the variable is unset (legacy). |
 | `<!-- boucle:interactive v=1 -->` | `v=1` | bin/boucle (cmd_pause, cmd_resume, cmd_restart — interactive harness) | — | Marks a comment posted by the interactive harness (`boucle pause`/`resume`/`restart`). Distinguishes a voluntary human takeover from a `boucle:human` escalation. Informational — dispatch does not act on it. |
+| `<!-- boucle:approval-request v=1 -->` | `v=1` (no attrs) | reviewer agent (posted on the PR via `forge_mr_note` when `boucle_mono_user` is true) | doctor (jq: `select(.body \| contains("boucle:approval-request"))`, then `forge_note_reactions` polls for a canonical approval emoji) | Mono-user PR approval gate: GitHub blocks self-review, so the reviewer posts this note on the PR and the human reacts 👍 to approve. The doctor's `doctor_mr_approval_emoji` polls the note's reactions and triggers the merger when a non-bot user reacted with a canonical approval emoji (👍 ❤️ 🚀 🎉). Replaces the old `VERDICT: PASS` auto-merge (no human signal). |
 
 ### 3.6 Markers NOT in code (do not emit)
 
@@ -497,6 +510,45 @@ A local harness (opencode, jcode, or any agent CLI that reads markdown) can
 take over a boucle issue, work on it interactively, and hand it back to the
 loop. This section documents the commands, the protocol, and the conventions
 the harness MUST respect.
+
+### 8.0 The forge-native `/boucle` command
+
+The `/boucle` command is a **user-facing capability** typed as an issue
+comment — a forge-native observability surface, distinct from the local
+`bin/boucle` harness below. It is read-only at MVP: **no agent invocation, no
+label writes, no MR scope**. It gives the human the one thing labels cannot
+carry: the content of an agent run and the detail of loop health, in the same
+channel the loop already posts in (I1, CONTEXT.md §7).
+
+**When to use it** — you want to see what the agent did without leaving the
+issue; you want a quick health projection of the loop.
+
+**Trigger phrases** (case-insensitive, anchored at the first non-empty line):
+
+| Trigger | Verb | Returns |
+|---|---|---|
+| `/boucle log [role]` | `log` | Tail of `agent-output.log` of the most recent run of `<role>` (default: the role in flight, else the last completed) |
+| `/boucle status` | `status` | `bin/health` projection (iterations, outcomes by role, cost total, last verdict SHA, role in flight) |
+| `/boucle help` | `help` | the verb list + the non-redundancy rationale |
+| `@<BOUCLE_BOT_USERNAME> log` | `log` | same as `/boucle log` (equivalent trigger form) |
+
+**What it does NOT do** — no label changes (labels are control/state; `/boucle`
+is observability — never duplicate label control, I2), no agent invocation at
+MVP, no MR scope (issue comments only at MVP).
+
+**Authorization** — `log`/`status`/`help`: actor ∈ {issue author, parent-issue
+human author via `resolve_reporter_id`, one generation}. These are
+observability of data the actor could already see in the CI UI — no new trust
+boundary. The future `jc` verb is **maintainer-only**. System notes filtered
+(lesson #34); closed-issue guard applies (except `help`, lesson #44).
+
+**Forge asymmetries** — GitHub `log` is **post-completion only** (GitHub
+Actions has no streaming log API); the future `tail` live-log verb is
+**GitLab-only**. The post-completion `log` works on both forges.
+
+**Non-redundancy note** — use labels for control; use `/boucle` for
+observability. NEVER use `/boucle` to write a label, and NEVER use a label to
+carry what `/boucle` observes.
 
 ### Commands
 

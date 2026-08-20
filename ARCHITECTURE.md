@@ -171,8 +171,8 @@ flowchart LR
 | `worker` | trigger `BOUCLE_ROLE=worker` | `boucle-issue-$BOUCLE_ISSUE` | implement on `boucle/<iid>`, deploy preview | `lib/boucle-ci/worker.sh` |
 | `reviewer` | trigger `BOUCLE_ROLE=reviewer` | `boucle-issue-$BOUCLE_ISSUE` | adversarial review of MR diff / preview | `lib/boucle-ci/reviewer.sh` |
 | `merger` | trigger `BOUCLE_ROLE=merger` | `boucle-merge` (serial) | rebase + merge after approval | `lib/boucle-ci/merger.sh` |
-| `post-merge` | trigger `BOUCLE_ROLE=merger` (unlocked) | — | deploy-wait + e2e trigger | `lib/boucle-ci/post-merge.sh` |
-| `catchup` | trigger `BOUCLE_ROLE=catchup` | — | post-merge issue closure + cascade | `lib/boucle-ci/catchup.sh` |
+| `post-merge` | trigger `BOUCLE_ROLE=post-merge` (from merger, catchup, or doctor) | — | deploy-wait + e2e trigger | `lib/boucle-ci/post-merge.sh` |
+| `catchup` | trigger `BOUCLE_ROLE=catchup` | — | direct-merge recovery: audit note + chain to post-merge | `lib/boucle-ci/catchup.sh` |
 | `deploy` | push to default branch | — | build + deploy (Cloudflare Pages / GitLab Pages) | `lib/boucle-ci/deploy.sh` |
 | `e2e` | trigger `BOUCLE_ROLE=e2e` | `boucle-issue-$BOUCLE_ISSUE` | verify production URL, SHA-anchored verdict | `lib/boucle-ci/e2e.sh` |
 | `doctor` | schedule (every 10 min) | — | self-healing board sweep | `lib/boucle-ci/doctor.sh` |
@@ -300,8 +300,13 @@ sweep (every 10 min). It:
   (`bin lib .pi .gitlab-ci.yml|.github/workflows/boucle.yml .jcode/agents
   .jcode/skills .jcode/UPSTREAM-FIX-WORKFLOW.md`), forge-conditional on the
   active forge.
-- **`.boucle-version`** — records the current upstream version (tag in release
-  mode, HEAD SHA in dev mode).
+- **`BOUCLE_VERSION` forge Variable** — records the current upstream version
+  (tag in release mode, HEAD SHA in dev mode). `bin/update` reads it to know
+  the current version and writes it back after a successful sync. For
+  submodule installs, the submodule pointer (`git submodule status .boucle`)
+  is the fallback — it is always accurate. There is no `.boucle-version`
+  file; boucle only runs in forge CI, so the forge Variable is always
+  available when it matters.
 - **Modes** — `release` (latest tag) or `dev` (HEAD of `main`), selected by
   `BOUCLE_UPDATE_MODE`.
 - **Fail-open** — `bin/update` has no `-e`; commands fail individually without
@@ -405,6 +410,133 @@ The most architecturally relevant:
 - **Webhook without work** — a webhook that produces no `.boucle-issue` file
   must never consume a runner silently; the `dispatch` EXIT trap fails the job
   (lesson #6).
+
+## 12. The `/boucle` interactive command
+
+The `/boucle` command is a **forge-native observability surface**: a human
+types `/boucle <verb>` as an issue comment, and a separate fast CI job fetches
+data and posts a stamped reply comment. It is read-only at MVP — **no agent
+invocation, no label writes, no security surface**. It closes the one gap
+labels cannot carry: the *content* of an agent run (`agent-output.log`) and
+the *detail* of loop health (`bin/health`), in the same channel the loop
+already posts in ([CONTEXT.md](CONTEXT.md) §7).
+
+### 12.1 Non-redundancy principle
+
+Labels are the single plan of control/state. `/boucle` is what labels cannot
+carry: **instruction text + observability**. The two MUST NEVER overlap:
+
+> **Labels = control/state. `/boucle` = what labels cannot carry: instruction text + observability.**
+
+Control words that reimplement `set_boucle_label` (`retry`/`cancel`/`pause`/
+`resume`) are **cut** — a `/boucle retry` that sets `boucle:todo` is a
+redundant second plan of control that will drift from the label one. `/boucle`
+NEVER writes a label (idempotence, lesson #4, is trivially satisfied — there
+is nothing to write).
+
+### 12.2 Trigger syntax
+
+Two equivalent forms, one parser, case-insensitive, anchored at the first
+non-empty line of the comment body:
+
+```
+^/boucle <verb> <args>        OR        ^@<BOUCLE_BOT_USERNAME> <verb> <args>
+```
+
+`BOUCLE_BOT_USERNAME` is resolved by the fallback in [AGENTS.md](AGENTS.md)
+lesson #50 (default `up-bot`). **Issue scope only at MVP** — MR comments are
+disabled (MR feedback already flows through the existing channel). Phase 2 may
+open a minimal MR subset.
+
+### 12.3 Verb table
+
+| Verb | Action | Backing | Status |
+|---|---|---|---|
+| `/boucle log [role]` | Fetch the `agent-output.log` artifact of the most recent run of `<role>` (default: the role in flight, else the last completed); post the tail (≤ comment-size limit) as a stamped comment. | GitLab: `GET /projects/:id/jobs/:job_id/artifacts/*artifact_path`. GitHub: list artifacts → `GET .../artifacts/{id}/zip` (post-completion only). | **MVP** |
+| `/boucle status` | Post a projection of `bin/health <issue>` (iterations, outcomes by role, cost total, last verdict SHA, role in flight). | `bin/health` (LOOP.md §"Loop-health measurement"). | **MVP** |
+| `/boucle help` | Post the list of supported verbs + the non-redundancy rationale. | Static text. | **MVP** |
+| `/boucle jc <instruction>` | Full-capability "manual worker" (maintainer-only, produces a commit/MR). | — | **Deferred (phase 2)** |
+| `/boucle tail [role]` | Live log. | GitLab `GET /jobs/:id/trace` (fetch-and-diff + edit note). **GitHub has no streaming log API** — impossible via API. | **Deferred (phase 2, GitLab-only)** |
+| `/boucle cancel` | Kill a running pipeline mid-flight. | Native forge API (`POST /pipelines/:pid/cancel` / `POST /actions/runs/:id/cancel`). | **Deferred (phase 2)** |
+
+Unknown first token → **no action**: post a one-line "unknown verb, try
+`/boucle help`" reply. The MVP does NOT fall through to `jc`.
+
+### 12.4 Insertion point
+
+The parser lives in the `dispatch` note handler, **after the system-note
+filter** (dispatch.sh:317-323), gated on `OBJECT_KIND == "note"`. This is the
+correction of an earlier design that placed the parser before the actor-identity
+skip — which would have processed system notes before the filter (violates
+lesson #34). After the filter, only genuine human notes reach the parser. The
+agent-marker skip (dispatch.sh:99-103) already ran upstream, so the bot's own
+stamped replies (which carry `<!-- boucle:agent -->`) are skipped — no
+self-trigger loop (lesson #55).
+
+### 12.5 Separate jobs (not inline dispatch work)
+
+`log`/`status`/`help` run as **separate fast jobs**, not inline in the dispatch
+job. The dispatch job holds `resource_group: boucle-dispatch` (a static name
+serializing all dispatches globally); an inline artifact fetch + comment post
+would hold that lock for seconds and queue every other webhook behind it
+(lesson #101). Each verb gets its own job with
+`resource_group: boucle-cmd-$BOUCLE_ISSUE`, triggered via
+`chain_to_role "$IID" "<verb>"` (the existing chaining primitive,
+lib/boucle.sh:1030). The dispatch job parses + authorizes + chains, then exits
+in milliseconds.
+
+| Job | `BOUCLE_ROLE` | Script | Backing |
+|---|---|---|---|
+| `cmd-log` | `cmd-log` | `lib/boucle-ci/cmd-log.sh` | `forge_job_artifact` (bin/forge/{gitlab,github}.sh) |
+| `cmd-status` | `cmd-status` | `lib/boucle-ci/cmd-status.sh` | `bin/health <issue>` |
+| `cmd-help` | `cmd-help` | `lib/boucle-ci/cmd-help.sh` | static text |
+
+### 12.6 Authorization
+
+- **`log` / `status` / `help`**: actor ∈ {issue author, parent-issue human
+  author via `resolve_reporter_id` (one generation, lesson #17)}. These are
+  observability of data the actor could already see in the CI UI — no new
+  trust boundary crossed. System notes filtered (lesson #34).
+- **No `BOUCLE_COMMAND_ENABLED` master switch needed at MVP** — there is no
+  agent invocation and no secret exfiltration surface (no `bash`, no `write`,
+  no agent at all). The switch becomes necessary in phase 2 when `jc` lands.
+- **Closed-issue guard** (lesson #44): do not run commands on a closed issue
+  (except `help`, which is pure text).
+- **Fail-open on API error**: the data is observable in the CI UI — no new
+  trust boundary.
+
+### 12.7 Sequence diagram
+
+```mermaid
+sequenceDiagram
+    participant H as Human
+    participant F as Forge (issue)
+    participant D as dispatch job
+    participant C as cmd-<verb> job
+    participant A as Forge API
+
+    H->>F: post "/boucle status" comment
+    F-->>D: webhook (note, OBJECT_KIND=note)
+    D->>D: system-note filter (lesson #34)
+    D->>D: agent-marker skip (lesson #55)
+    D->>D: parse verb + authorize (issue author / parent author)
+    D->>A: chain_to_role (trigger cmd-status pipeline)
+    D-->>D: exit in ms (never holds boucle-dispatch lock)
+    A-->>C: pipeline trigger (BOUCLE_ROLE=cmd-status)
+    C->>A: GET data (bin/health / artifact)
+    C->>F: POST stamped reply (<!-- boucle:agent -->)
+    F-->>H: reply visible on the issue
+```
+
+### 12.8 Cross-references
+
+- [LOOP.md](LOOP.md) §"Interactive commands" — CI variables (`BOUCLE_COMMAND_*`
+  family, future `BOUCLE_COMMAND_ENABLED` switch).
+- [AGENTS.md](AGENTS.md) — lessons #100 (marker+authz), #101 (dispatch lock).
+- [CONTEXT.md](CONTEXT.md) §7 — forge-native constraint (no new frontend, no
+  server, no computer to keep running).
+- [SKILL.md](SKILL.md) §8 — the interactive-mode harness commands (local
+  `bin/boucle`), distinct from the forge-native `/boucle` command.
 
 ## See also
 
