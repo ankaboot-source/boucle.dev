@@ -80,9 +80,11 @@ official CDN, running **only** at `/admin/` (never on the public page).
    write` access to this repository (the "Sign in with Token" button links to
    the token page with the required scopes pre-selected).
 3. Pick a collection (Hero, Steps, Cards, Quick start, Footer…) and edit any
-   text field — or, for Steps, paste an icon asset path like `/icons/step-1.svg`
-   into an `Icon` field (for Cards, the `Icon` field takes an asset path like
-   `/icons/card-1.svg`).
+   text field — or, for Steps and Cards, pick an icon from the **Assets**
+   library (the `Icon` field is an image picker, not a text input). The Assets
+   view lists every committed asset under `public/` (including the 16 SVG icons
+   in `public/icons/` and the footer logo), so an editor can replace an icon's
+   artwork directly from the CMS.
 4. Save; Sveltia commits the change to the repository and the site redeploys.
 
 > **SVELTIA_PAT**: the `SVELTIA_PAT` environment variable is reserved for the

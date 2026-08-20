@@ -1,4 +1,5 @@
 ---
+logo: /boucle-logo.png
 madePrefix: Made in 🌍Africa by
 madeLabel: ankaboot.io
 madeHref: https://ankaboot.io

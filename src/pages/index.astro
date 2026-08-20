@@ -1062,6 +1062,12 @@ const description = hero.data.metaDescription;
         padding: 2.5rem 1.5rem;
         text-align: center;
       }
+      .footer-logo {
+        display: block;
+        width: 2.5rem;
+        height: auto;
+        margin: 0 auto 1rem;
+      }
       .footer-made {
         color: var(--text-secondary);
         font-size: 0.9rem;
@@ -1612,6 +1618,7 @@ const description = hero.data.metaDescription;
 
     <!-- ============ FOOTER ============ -->
     <footer>
+      <img class="footer-logo" src={footer.data.logo} alt="" aria-hidden="true" />
       <p class="footer-made">{footer.data.madePrefix} <a href={footer.data.madeHref}>{footer.data.madeLabel}</a></p>
       <nav class="footer-links" aria-label={footer.data.navAriaLabel}>
         {
