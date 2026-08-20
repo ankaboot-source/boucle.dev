@@ -1,6 +1,6 @@
 ---
 title: Quick start
-sub: One command, and the loop takes over.
+sub: One command, and boucles takes over.
 tablistAriaLabel: Install method
 onelinerTab: Oneliner
 promptTab: Prompt
@@ -23,12 +23,12 @@ promptCode: |-
   6. Show me the URL bin/setup printed for configuring the masked API key,
      and any next steps it listed.
 copyLabel: Copy
-copiedLabel: "Copied!"
+copiedLabel: Copied!
 failedLabel: Failed
 transitionNum: Next
 transitionPrefix: Create an issue in your forge and tag it
 transitionTag: boucle:triage
-transitionSuffix: — the loop starts.
+transitionSuffix: → boucle starts.
 docsLabel: View the docs →
 docsHref: https://github.com/ankaboot-source/boucle/blob/main/README.md
 ---
