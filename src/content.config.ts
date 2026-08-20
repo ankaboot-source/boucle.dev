@@ -133,6 +133,8 @@ const quickStart = defineCollection({
 const footer = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/footer' }),
   schema: z.object({
+    // Non-animated boucle logo shown above the attribution. Purely decorative.
+    logo: z.string(),
     madePrefix: z.string(),
     madeLabel: z.string(),
     madeHref: z.string(),

@@ -18,10 +18,11 @@ backend:
   repo: ankaboot-source/boucle.dev
   branch: main
 
-# No media uploads are currently needed — all brand assets are committed to
-# the repo (public/). A local media folder is still declared so the CMS loads.
-media_folder: /public/media
-public_folder: /media
+# All committed assets under public/ are editable from the CMS Assets view
+# (Option B — broad media folder). The icons live in public/icons/ and the
+# footer logo in public/boucle-logo.png, so both are manageable in Sveltia.
+media_folder: /public
+public_folder: /
 
 # Simple workflow: an edit is committed directly to the default branch and the
 # site redeploys (GitHub Pages). No draft-branch/PR step, matching the goal
@@ -92,9 +93,9 @@ collections:
       - { name: ariaLabel, label: Mockup aria-label, widget: string }
       - { name: url, label: Mockup URL (optional), widget: string, required: false }
       - name: icon
-        label: Icon (asset path)
-        widget: string
-        hint: Path to the step icon SVG asset, e.g. /icons/step-1.svg.
+        label: Icon
+        widget: image
+        hint: Pick the step icon SVG from the Assets library, e.g. /icons/step-1.svg.
       - name: blocks
         label: Forge mockup blocks
         widget: list
@@ -165,9 +166,9 @@ collections:
       - { name: pain, label: Pain point, widget: text }
       - { name: answer, label: Answer, widget: text }
       - name: icon
-        label: Icon (asset path)
-        widget: string
-        hint: Path to the card icon SVG asset, e.g. /icons/card-1.svg.
+        label: Icon
+        widget: image
+        hint: Pick the card icon SVG from the Assets library, e.g. /icons/card-1.svg.
 
   # ---------- Quick start (single file) ----------
   - name: quickStart
@@ -206,6 +207,10 @@ collections:
         label: Footer
         file: src/content/footer/footer.md
         fields:
+          - name: logo
+            label: Logo
+            widget: image
+            hint: Non-animated boucle logo shown above the attribution. Purely decorative.
           - { name: madePrefix, label: Made prefix, widget: string }
           - { name: madeLabel, label: Made label, widget: string }
           - { name: madeHref, label: Made link, widget: string }
