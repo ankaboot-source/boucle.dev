@@ -448,9 +448,18 @@ const description = hero.data.metaDescription;
         outline: 2px solid var(--accent);
         outline-offset: 2px;
       }
-      .step-nav svg {
+      .step-nav .nav-arrow {
         width: 22px;
         height: 22px;
+        background-color: currentColor;
+        -webkit-mask-image: var(--nav-arrow-mask);
+        mask-image: var(--nav-arrow-mask);
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
       }
 
       .step-dots {
@@ -514,7 +523,7 @@ const description = hero.data.metaDescription;
         border-radius: var(--radius);
         color: var(--accent);
       }
-      .step-icon svg {
+      .step-icon img {
         width: 28px;
         height: 28px;
       }
@@ -945,6 +954,10 @@ const description = hero.data.metaDescription;
         height: 1rem;
         color: var(--accent-violet);
       }
+      .card .remove img {
+        width: 1rem;
+        height: 1rem;
+      }
       .card .answer {
         color: var(--text-primary);
         margin: 0;
@@ -1346,7 +1359,7 @@ const description = hero.data.metaDescription;
                 <div class="step" role="group" aria-roledescription="slide" aria-label={howItWorks.data.slideAriaLabelTemplate.replace('{n}', String(i + 1)).replace('{total}', String(steps.length))} aria-hidden={i === 0 ? 'false' : 'true'}>
                   <div class="step-head">
                     <div class="step-icon" aria-hidden="true">
-                      {step.data.icon && <Fragment set:html={step.data.icon} />}
+                      {step.data.icon && <img src={step.data.icon} alt="" aria-hidden="true" />}
                     </div>
                     <div class="step-body">
                       <h3>{step.data.title}</h3>
@@ -1413,9 +1426,7 @@ const description = hero.data.metaDescription;
                             case 'e2e':
                               return (
                                 <p class="mock-e2e">
-                                  <svg class="mock-e2e-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true">
-                                    <path d="M4 12l5 5L20 6" />
-                                  </svg>
+                                  <img class="mock-e2e-check" src="/icons/checkmark.svg" alt="" aria-hidden="true" />
                                   {block.text}
                                 </p>
                               );
@@ -1450,9 +1461,7 @@ const description = hero.data.metaDescription;
                             case 'deployLabel':
                               return (
                                 <p class="mock-deploy-label" aria-hidden="true">
-                                  <svg class="mock-deploy-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                    <path d="M4 12l5 5L20 6" />
-                                  </svg>
+                                  <img class="mock-deploy-check" src="/icons/checkmark.svg" alt="" aria-hidden="true" />
                                   {block.text}
                                 </p>
                               );
@@ -1480,9 +1489,7 @@ const description = hero.data.metaDescription;
                 id="step-prev"
                 aria-label={howItWorks.data.prevStepLabel}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                  <path d="M15 18l-6-6 6-6" />
-                </svg>
+                <span class="nav-arrow" style="--nav-arrow-mask: url('/icons/chevron-left.svg')" aria-hidden="true"></span>
               </button>
               <span class="step-counter" id="step-counter" aria-live="polite"></span>
               <div class="step-dots" id="step-dots" role="tablist" aria-label={howItWorks.data.stepNavAriaLabel}>
@@ -1503,9 +1510,7 @@ const description = hero.data.metaDescription;
                 id="step-next"
                 aria-label={howItWorks.data.nextStepLabel}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                  <path d="M9 6l6 6-6 6" />
-                </svg>
+                <span class="nav-arrow" style="--nav-arrow-mask: url('/icons/chevron-right.svg')" aria-hidden="true"></span>
               </button>
             </div>
           </div>
@@ -1526,7 +1531,7 @@ const description = hero.data.metaDescription;
                 <img class="card-icon" src={cards[0].data.icon} alt="" aria-hidden="true" />
                 <h3>{cards[0].data.title}</h3>
               </div>
-              <p class="pain"><span class="remove" aria-hidden="true"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span><span class="pain-text">{cards[0].data.pain}</span></p>
+              <p class="pain"><span class="remove" aria-hidden="true"><img src="/icons/close-x.svg" alt="" aria-hidden="true" /></span><span class="pain-text">{cards[0].data.pain}</span></p>
               <p class="answer">{cards[0].data.answer}</p>
             </div>
 
@@ -1535,7 +1540,7 @@ const description = hero.data.metaDescription;
                 <img class="card-icon" src={cards[1].data.icon} alt="" aria-hidden="true" />
                 <h3>{cards[1].data.title}</h3>
               </div>
-              <p class="pain"><span class="remove" aria-hidden="true"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span><span class="pain-text">{cards[1].data.pain}</span></p>
+              <p class="pain"><span class="remove" aria-hidden="true"><img src="/icons/close-x.svg" alt="" aria-hidden="true" /></span><span class="pain-text">{cards[1].data.pain}</span></p>
               <p class="answer">{cards[1].data.answer}</p>
             </div>
 
@@ -1544,7 +1549,7 @@ const description = hero.data.metaDescription;
                 <img class="card-icon" src={cards[2].data.icon} alt="" aria-hidden="true" />
                 <h3>{cards[2].data.title}</h3>
               </div>
-              <p class="pain"><span class="remove" aria-hidden="true"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span><span class="pain-text">{cards[2].data.pain}</span></p>
+              <p class="pain"><span class="remove" aria-hidden="true"><img src="/icons/close-x.svg" alt="" aria-hidden="true" /></span><span class="pain-text">{cards[2].data.pain}</span></p>
               <p class="answer">{cards[2].data.answer}</p>
             </div>
 
@@ -1553,7 +1558,7 @@ const description = hero.data.metaDescription;
                 <img class="card-icon" src={cards[3].data.icon} alt="" aria-hidden="true" />
                 <h3>{cards[3].data.title}</h3>
               </div>
-              <p class="pain"><span class="remove" aria-hidden="true"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span><span class="pain-text">{cards[3].data.pain}</span></p>
+              <p class="pain"><span class="remove" aria-hidden="true"><img src="/icons/close-x.svg" alt="" aria-hidden="true" /></span><span class="pain-text">{cards[3].data.pain}</span></p>
               <p class="answer">{cards[3].data.answer}</p>
             </div>
 
@@ -1562,7 +1567,7 @@ const description = hero.data.metaDescription;
                 <img class="card-icon" src={cards[4].data.icon} alt="" aria-hidden="true" />
                 <h3>{cards[4].data.title}</h3>
               </div>
-              <p class="pain"><span class="remove" aria-hidden="true"><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></span><span class="pain-text">{cards[4].data.pain}</span></p>
+              <p class="pain"><span class="remove" aria-hidden="true"><img src="/icons/close-x.svg" alt="" aria-hidden="true" /></span><span class="pain-text">{cards[4].data.pain}</span></p>
               <p class="answer">{cards[4].data.answer}</p>
             </div>
           </div>

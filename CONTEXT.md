@@ -31,7 +31,7 @@ dogfood consumer of the engine.
 | Layer | Technology |
 | --- | --- |
 | Framework | Astro (static site, single page) |
-| Language | HTML + CSS (inline in `src/pages/index.astro`) + inline SVG; the only raster asset is the brand logo (an animated GIF `public/boucle-logo.gif` in the hero) |
+| Language | HTML + CSS (inline in `src/pages/index.astro`) + external SVG assets in `public/icons/`; the only raster asset is the brand logo (an animated GIF `public/boucle-logo.gif` in the hero) |
 | Content | All user-facing text lives in Astro content collections (`src/content/`, schema in `src/content.config.ts`) — editable without touching HTML/CSS |
 | CMS | Sveltia CMS (`public/admin/`, official CDN) — visual Git-based editor for all text AND icons; GitHub backend, PAT auth |
 | Fonts | Self-hosted: Unbounded (display), Sora (body), Space Mono (mono) |
@@ -71,7 +71,7 @@ dogfood consumer of the engine.
 - **Page sections** (landing, top to bottom): Hero → How boucle works → Lives in
   your forge → Why boucle → Quick start → Footer.
 - **Lives in your forge** — dedicated section between "How boucle works" and "Why
-  boucle" featuring GitHub and GitLab inline SVG logos and the promise "boucle
+  boucle" featuring GitHub and GitLab logos and the promise "boucle
   lives in your forge. GitHub, GitLab. No external tool, no dashboard."
 - **Five promises** (Why boucle): Lives in your forge, Deterministic and
   reliable, Works while you sleep, No UI No CLI, Self-healing self-learning

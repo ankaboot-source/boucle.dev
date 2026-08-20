@@ -78,6 +78,7 @@ const steps = defineCollection({
     description: z.string(),
     ariaLabel: z.string(),
     url: z.string().optional(),
+    // Asset path to the step icon SVG (public/icons/step-N.svg).
     icon: z.string().optional(),
     blocks: z.array(mockBlock).default([]),
   }),
