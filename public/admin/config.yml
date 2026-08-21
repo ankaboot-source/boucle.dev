@@ -17,6 +17,10 @@ backend:
   name: github
   repo: ankaboot-source/boucle.dev
   branch: main
+  # skip_ci: saves are committed to `main` with a `[skip ci]` suffix, so a plain
+  # Save does NOT trigger a rebuild. The editor then chooses "Save & Publish" to
+  # commit without the suffix and trigger a GitHub Pages deploy.
+  skip_ci: true
 
 # All committed assets under public/ are editable from the CMS Assets view
 # (Option B — broad media folder). The icons live in public/icons/ and the
@@ -24,9 +28,10 @@ backend:
 media_folder: /public
 public_folder: /
 
-# Simple workflow: an edit is committed directly to the default branch and the
-# site redeploys (GitHub Pages). No draft-branch/PR step, matching the goal
-# "edit, save, see the change live".
+# Simple workflow: an edit is committed directly to the default branch. No
+# draft-branch/PR step. With `skip_ci: true`, a plain Save commits with a
+# `[skip ci]` suffix and does NOT redeploy; "Save & Publish" commits without
+# the suffix and triggers the GitHub Pages rebuild.
 
 collections:
   # ---------- Hero (single file) ----------

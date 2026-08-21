@@ -85,7 +85,11 @@ official CDN, running **only** at `/admin/` (never on the public page).
    view lists every committed asset under `public/` (including the 16 SVG icons
    in `public/icons/` and the footer logo), so an editor can replace an icon's
    artwork directly from the CMS.
-4. Save; Sveltia commits the change to the repository and the site redeploys.
+4. **Save** — commits the change to `main` with a `[skip ci]` suffix, so it does
+   **not** redeploy. To make the change go live, open the Save dropdown and choose
+   **Save & Publish**, which commits without the suffix and triggers the GitHub
+   Pages rebuild. (The Save / Save & Publish dropdown is provided by Sveltia CMS
+   via the `skip_ci` backend option in `public/admin/config.yml`.)
 
 > **SVELTIA_PAT**: the `SVELTIA_PAT` environment variable is reserved for the
 > token so it can be injected via CI/CD. When the token is missing or invalid,
