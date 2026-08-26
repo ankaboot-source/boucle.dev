@@ -84,7 +84,7 @@ readability or WCAG 2.1 AA contrast.
 
 - 8px base grid. Sections: `padding: clamp(3rem, 8vw, 6rem) 1.5rem`.
 - Container max-width: `1100px`, centered.
-- Single page, vertical scroll, mobile-first. Sections: Hero → How boucle works → Lives in your forge → Why boucle → Quick start → Footer. No navigation bar.
+- Single page, vertical scroll, mobile-first. Sections: Hero → How boucle works → Lives in your forge → Why boucle → Quick start → Open source → Footer. No navigation bar.
 - Responsive breakpoints: mobile (under 768px), tablet (768–1024px), desktop (over 1024px).
 - Grid: CSS Grid for multi-column layouts, Flexbox for component internals.
 
@@ -256,6 +256,22 @@ reinforce the afrofuturist identity without overwhelming the layout:
   your forge and tag it `boucle:triage`" — marking the shift from setup
   tooling to daily usage in the user's own forge.
 - "Voir la doc" link to the README.
+
+### Open source
+
+- Closing section between Quick start and the Footer — the community door.
+- Positioning line ("Libre & open source. Built by an indie product builder,
+  for product builders.") in `--font-display` gold (`--text-gold`), leading
+  the section.
+- A single **Contribute** CTA (gold `--accent`, `--radius`) linking to the
+  GitHub repo — an invitation to participate, not a second install button.
+- The efficiency closing argument as a supporting card (`--surface-raised`,
+  `--border-neutral`): "Ship 10x more with less" headline in `--font-display`
+  gold, a one-line capacity figure, and a link to the README Cost section.
+- Desktop (≥1024px): positioning + CTA on one side, capacity card as the
+  supporting beat. Mobile: stacks vertically, CTA stays reachable.
+- No animation or scroll-reveal on this section. The licence (AGPL-3.0) is
+  not repeated here — it lives in the footer's License link.
 
 ### Footer
 

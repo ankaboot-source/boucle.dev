@@ -202,6 +202,27 @@ collections:
           - { name: docsLabel, label: Docs link label, widget: string }
           - { name: docsHref, label: Docs link URL, widget: string }
 
+  # ---------- Open source (single file) ----------
+  - name: openSource
+    label: Open source
+    label_singular: Open source
+    description: Open-source section — positioning, Contribute CTA, and the
+      efficiency closing argument. The licence (AGPL-3.0) lives only in the footer.
+    files:
+      - name: open-source
+        label: Open source
+        file: src/content/open-source/open-source.md
+        fields:
+          - { name: title, label: Title, widget: string }
+          - { name: sectionAriaLabel, label: Section aria-label, widget: string }
+          - { name: positioning, label: Positioning text, widget: text }
+          - { name: ctaLabel, label: CTA label, widget: string }
+          - { name: ctaHref, label: CTA link, widget: string }
+          - { name: headline, label: Headline, widget: string }
+          - { name: capacityText, label: Capacity text, widget: text }
+          - { name: costLinkLabel, label: Cost link label, widget: string }
+          - { name: costHref, label: Cost link URL, widget: string }
+
   # ---------- Footer (single file) ----------
   - name: footer
     label: Footer
