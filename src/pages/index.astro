@@ -16,6 +16,8 @@ const steps = (await getCollection('steps')).sort((a, b) => a.data.order - b.dat
 const whyBoucle = (await getCollection('whyBoucle'))[0];
 const cards = (await getCollection('cards')).sort((a, b) => a.data.order - b.data.order);
 const quickStart = (await getCollection('quickStart'))[0];
+const loopStatesHeader = (await getCollection('loopStatesHeader'))[0];
+const loopStates = (await getCollection('loopStates')).sort((a, b) => a.data.order - b.data.order);
 const footer = (await getCollection('footer'))[0];
 
 const title = hero.data.metaTitle;
@@ -985,6 +987,232 @@ const description = hero.data.metaDescription;
         color: var(--text-gold);
       }
 
+      /* ============ LOOP STATES ============ */
+      /* The label state machine rendered as a progression. Autonomous states
+         read cyan, human-decision states gold, terminal states muted exits.
+         Only existing DESIGN.md §2 tokens are used — no new colours. No
+         animation or scroll-triggered reveal (non-goal). */
+      .loop {
+        background: var(--surface-base);
+      }
+      .loop-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
+        margin: 0 0 2.5rem;
+        padding: 0;
+        list-style: none;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+      }
+      .loop-legend li {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .loop-legend .legend-swatch {
+        width: 14px;
+        height: 14px;
+        flex: none;
+        border-radius: var(--radius);
+      }
+      .legend-swatch--autonomous {
+        background: var(--accent-cyan);
+      }
+      .legend-swatch--human {
+        background: var(--accent);
+      }
+      .legend-swatch--terminal {
+        background: var(--text-secondary);
+      }
+
+      /* Main sequence — a wrapping numbered flow so reading order stays
+         left-to-right, top-to-bottom. On wide screens the states form rows;
+         on narrow screens a connector runs down the left edge through the
+         number badges (see the <768px rail). */
+      .loop-flow {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.1rem;
+        margin: 0 auto;
+        max-width: 720px;
+      }
+      /* Mobile connector rail — runs down the left edge through the number
+         badges, showing the sequence is connected top-to-bottom. Centred on
+         the badge column (1.1rem padding + half the 2.25rem badge). */
+      .loop-flow::before {
+        content: '';
+        position: absolute;
+        left: 2.2rem;
+        top: 0.6rem;
+        bottom: 0.6rem;
+        width: 1px;
+        background: var(--border-neutral);
+      }
+      .loop-node {
+        position: relative;
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+        background: var(--surface-raised);
+        border: 1px solid var(--border-neutral);
+        border-radius: var(--radius);
+        padding: 1rem 1.1rem;
+        min-width: 0;
+      }
+      .loop-node__num {
+        flex: none;
+        width: 2.25rem;
+        height: 2.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-neutral);
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        font-weight: 700;
+        position: relative;
+        z-index: 1;
+      }
+      .loop-node__body {
+        min-width: 0;
+      }
+      .loop-node__chip {
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        padding: 0.2rem 0.7rem;
+        border-radius: var(--radius);
+        margin-bottom: 0.4rem;
+      }
+      .loop-node__type {
+        display: inline-block;
+        margin-left: 0.5rem;
+        font-family: var(--font-body);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+      }
+      .loop-node__desc {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      /* Autonomous — cyan chip on raised surface (DESIGN §2 cyan token). */
+      .loop-node--autonomous .loop-node__chip {
+        color: var(--surface-base);
+        background: var(--accent-cyan);
+      }
+      .loop-node--autonomous .loop-node__num {
+        color: var(--accent-cyan);
+        border-color: var(--accent-cyan);
+      }
+      /* Human decides — gold chip (DESIGN §2 gold token). */
+      .loop-node--human .loop-node__chip {
+        color: var(--surface-base);
+        background: var(--accent);
+      }
+      .loop-node--human .loop-node__num {
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      /* Terminal exits — muted, struck-through label so they read as exits
+         from the loop, not steps in it. */
+      .loop-node--terminal {
+        opacity: 0.82;
+        border-style: dashed;
+        border-color: var(--border-neutral);
+      }
+      .loop-node--terminal .loop-node__chip {
+        color: var(--text-secondary);
+        background: var(--bg-secondary);
+        text-decoration: line-through;
+        text-decoration-color: var(--text-secondary);
+      }
+      .loop-node--terminal .loop-node__num {
+        color: var(--text-secondary);
+      }
+
+      /* Escalation branch — the human escalation state (boucle:human) is a
+         terminal exit that branches off the main path rather than sitting in
+         sequence. It is pulled out of the numbered ordered list into its own
+         branch block with a visible join notch connecting it back to the main
+         flow. It keeps the terminal treatment (muted, struck-through label)
+         so it reads as an exit. */
+      .loop-branch {
+        position: relative;
+        margin: 1.1rem 0 0;
+        padding-left: 2.4rem;
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+      }
+      .loop-branch__join {
+        position: absolute;
+        left: 1.15rem;
+        top: 0;
+        width: 1.1rem;
+        height: 1px;
+        background: var(--border-neutral);
+      }
+      .loop-branch__join::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: -1.1rem;
+        width: 1px;
+        height: 1.6rem;
+        background: var(--border-neutral);
+      }
+      .loop-branch__tag {
+        margin: 0 0 0.5rem;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+      }
+      .loop-branch .loop-node--escalation .loop-node__num {
+        color: var(--text-secondary);
+      }
+
+      @media (min-width: 768px) {
+        .loop-flow::before {
+          display: none;
+        }
+        .loop-flow {
+          grid-template-columns: repeat(2, 1fr);
+          max-width: 820px;
+        }
+        .loop-branch__join {
+          display: none;
+        }
+        .loop-branch {
+          max-width: 820px;
+          text-align: center;
+        }
+      }
+      @media (min-width: 1024px) {
+        .loop-flow {
+          grid-template-columns: repeat(4, 1fr);
+          max-width: 1040px;
+        }
+        .loop-branch {
+          max-width: 1040px;
+        }
+      }
+
       /* ============ QUICK START ============ */
       .quick {
         background: var(--surface-base);
@@ -1518,6 +1746,58 @@ const description = hero.data.metaDescription;
               >
                 <span class="nav-arrow" style="--nav-arrow-mask: url('/icons/chevron-right.svg')" aria-hidden="true"></span>
               </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      /* ============ LOOP STATES ============ */
+      <section class="loop" id="loop-states" aria-label={loopStatesHeader.data.ariaLabel}>
+        <div class="container">
+          <h2 id="loop-states-title">{loopStatesHeader.data.title}</h2>
+          <p class="section-sub">
+            {loopStatesHeader.data.sub}
+          </p>
+
+          <ul class="loop-legend" aria-hidden="true">
+            <li><span class="legend-swatch legend-swatch--autonomous"></span> Autonomous</li>
+            <li><span class="legend-swatch legend-swatch--human"></span> You decide</li>
+            <li><span class="legend-swatch legend-swatch--terminal"></span> Terminal</li>
+          </ul>
+
+          <ol class="loop-flow" aria-labelledby="loop-states-title">
+            {
+              loopStates
+                .filter((s) => s.data.order !== 9)
+                .map((s) => (
+                  <li class={`loop-node loop-node--${s.data.type}`}>
+                    <span class="loop-node__num" aria-hidden="true">{s.data.order}</span>
+                    <div class="loop-node__body">
+                      <div>
+                        <span class="loop-node__chip">{s.data.label}</span>
+                        <span class="loop-node__type">{s.data.typeLabel}</span>
+                      </div>
+                      <p class="loop-node__desc">{s.data.description}</p>
+                    </div>
+                  </li>
+                ))
+            }
+          </ol>
+
+          {/* Escalation branch — pulled out of the sequence so it clearly
+              branches off the main path rather than sitting in it. */}
+          <div class="loop-branch" aria-label={loopStates.find((s) => s.data.order === 9).data.label}>
+            <div class="loop-branch__join" aria-hidden="true"></div>
+            <p class="loop-branch__tag">Escalation branch — exits the loop</p>
+            <div class="loop-node loop-node--escalation loop-node--terminal">
+              <span class="loop-node__num" aria-hidden="true">{loopStates.find((s) => s.data.order === 9).data.order}</span>
+              <div class="loop-node__body">
+                <div>
+                  <span class="loop-node__chip">{loopStates.find((s) => s.data.order === 9).data.label}</span>
+                  <span class="loop-node__type">{loopStates.find((s) => s.data.order === 9).data.typeLabel}</span>
+                </div>
+                <p class="loop-node__desc">{loopStates.find((s) => s.data.order === 9).data.description}</p>
+              </div>
             </div>
           </div>
         </div>

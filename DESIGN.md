@@ -247,6 +247,48 @@ reinforce the afrofuturist identity without overwhelming the layout:
 - Cards animate in on scroll-reveal (fade-in-up) and on hover (gold border +
   glow), respecting `prefers-reduced-motion`.
 
+### Loop states
+
+The boucle label state machine rendered as a progression between "How boucle
+works" and "Why boucle" (background `--surface-base`). It makes the
+deterministic loop's states — the product's most concrete differentiator —
+visible instead of stated as prose.
+
+- **Content** — driven by the `loopStates` content collection (one entry per
+  state: `order`, `label`, `description`, `type`, `typeLabel`) plus a
+  `loopStatesHeader` single-file collection for the title/subtitle/aria-label.
+  All copy is editable from the Sveltia CMS, like every other section.
+- **Nine states, in order** — `boucle:triage`, `boucle:spec-review`,
+  `boucle:todo`, `boucle:working`, `boucle:review`, `boucle:approval`,
+  `boucle:merging`, `boucle:done`, `boucle:human`.
+- **Colour coding** (existing tokens only — no new colours): autonomous states
+  use a cyan chip on `--surface-raised` (`--accent-cyan`), human-decision states
+  use a gold chip (`--accent`), terminal states are muted (`--text-secondary`
+  chip, struck-through label, dashed border) so they read as exits from the
+  loop rather than steps in it. A legend with `aria-hidden` swatches reinforces
+  the colour-meaning mapping; the colour is never the only signal because each
+  chip also carries a visible `typeLabel` text ("Autonomous" / "Human decides" /
+  "Terminal" / "Escalation").
+- **Each state** renders as a raised `--surface-raised` node with a 6px radius,
+  a number badge (mono font, type-coloured), a mono label chip, the visible
+  type label, and a one-line `--text-secondary` description.
+- **Layout** — mobile-first single column. Below 768px the states stack
+  vertically with a neutral connector rail running down the left edge through
+  the number badges; the escalation state (`boucle:human`) is pulled out of
+  the numbered sequence into its own branch block beneath the list, with a
+  visible join notch and an "Escalation branch" tag connecting it back to the
+  main flow. At ≥768px the sequence becomes a 2-column grid; at ≥1024px a
+  4-column grid, reading left-to-right, top-to-bottom, with the escalation
+  branch centred beneath the sequence. The branch is conveyed purely by
+  layout (join notch + tag), not by a new colour. No horizontal page scroll
+  at 390px or 1440px.
+- **Motion** — none. No animation or scroll-triggered reveal on the states
+  (non-goal); `prefers-reduced-motion` is naturally satisfied.
+- **Accessibility** — a semantic section element with an aria-label, an
+  ordered list for the sequence, each chip's label + `typeLabel` as readable
+  text, and the legend `aria-hidden` so screen readers get the sequence from
+  the ordered list rather than duplicated swatch text.
+
 ### Quick start
 
 - Minimal: a single `curl -fsSL https://boucle.dev/install.sh | bash` oneliner.
