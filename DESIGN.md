@@ -84,7 +84,7 @@ readability or WCAG 2.1 AA contrast.
 
 - 8px base grid. Sections: `padding: clamp(3rem, 8vw, 6rem) 1.5rem`.
 - Container max-width: `1100px`, centered.
-- Single page, vertical scroll, mobile-first. Sections: Hero → How boucle works → Lives in your forge → Why boucle → Quick start → Open source → Footer. No navigation bar.
+- Single page, vertical scroll, mobile-first. Sections: Hero → How boucle works → Lives in your forge → Why boucle → Quick start → Footer. No navigation bar.
 - Responsive breakpoints: mobile (under 768px), tablet (768–1024px), desktop (over 1024px).
 - Grid: CSS Grid for multi-column layouts, Flexbox for component internals.
 
