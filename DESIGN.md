@@ -84,7 +84,7 @@ readability or WCAG 2.1 AA contrast.
 
 - 8px base grid. Sections: `padding: clamp(3rem, 8vw, 6rem) 1.5rem`.
 - Container max-width: `1100px`, centered.
-- Single page, vertical scroll, mobile-first. Sections: Hero → How boucle works → Lives in your forge → Why boucle → Quick start → Open source → Footer. No navigation bar.
+- Single page, vertical scroll, mobile-first. Sections: Hero → How boucle works → Lives in your forge → Why boucle → Quick start → Footer. No navigation bar.
 - Responsive breakpoints: mobile (under 768px), tablet (768–1024px), desktop (over 1024px).
 - Grid: CSS Grid for multi-column layouts, Flexbox for component internals.
 
@@ -230,20 +230,25 @@ reinforce the afrofuturist identity without overwhelming the layout:
 
 ### Why boucle
 
-- 5 promise cards, dark panels with a 6px radius, a subtle neutral `--border-neutral`
+- 7 promise cards, dark panels with a 6px radius, a subtle neutral `--border-neutral`
   border, and a `--shadow-subtle` box-shadow (forge look).
 - First card ("Lives in your forge") is the featured/prominent card — it spans
   the full width of the card grid and gets a distinct gold treatment (gold
   border + glow) to mark it as the key differentiator. It links to the
   dedicated `#lives-in-your-forge` section.
-- Remaining 4 cards ("Deterministic and reliable", "Works while you sleep",
-  "No UI, No CLI", "Self-healing, self-learning loop") display in a 2×2 grid on
-  tablet/desktop, stacked on mobile.
+- Remaining 6 cards ("Deterministic and reliable", "Works while you sleep",
+  "No UI, No CLI", "Self-healing, self-learning loop", "Libre & open source",
+  "Ship 10x more with less") display in a 3×2 grid on tablet/desktop, stacked
+  on mobile.
 - Each card: a unique icon loaded from an external SVG asset
   (`public/icons/card-N.svg`, `aria-hidden`), constrained to 2.5rem by the
   `.card-icon` class, beside the title, then a pain point (muted text, striked
   on scroll-reveal with the strike line constrained to the text width only)
   preceded by a small X (remove) icon, then boucle's answer (gold/violet accent).
+- Cards 6–7 carry an optional text link (`.card-link`) inside the card body —
+  a bordered text link (subtle gold `--border` accent), not a button, so it
+  does not compete with the hero's install CTA. It renders only when both
+  `linkLabel` and `linkHref` are set.
 - Cards animate in on scroll-reveal (fade-in-up) and on hover (gold border +
   glow), respecting `prefers-reduced-motion`.
 
@@ -256,22 +261,6 @@ reinforce the afrofuturist identity without overwhelming the layout:
   your forge and tag it `boucle:triage`" — marking the shift from setup
   tooling to daily usage in the user's own forge.
 - "Voir la doc" link to the README.
-
-### Open source
-
-- Closing section between Quick start and the Footer — the community door.
-- Positioning line ("Libre & open source. Built by an indie product builder,
-  for product builders.") in `--font-display` gold (`--text-gold`), leading
-  the section.
-- A single **Contribute** CTA (gold `--accent`, `--radius`) linking to the
-  GitHub repo — an invitation to participate, not a second install button.
-- The efficiency closing argument as a supporting card (`--surface-raised`,
-  `--border-neutral`): "Ship 10x more with less" headline in `--font-display`
-  gold, a one-line capacity figure, and a link to the README Cost section.
-- Desktop (≥1024px): positioning + CTA on one side, capacity card as the
-  supporting beat. Mobile: stacks vertically, CTA stays reachable.
-- No animation or scroll-reveal on this section. The licence (AGPL-3.0) is
-  not repeated here — it lives in the footer's License link.
 
 ### Footer
 
