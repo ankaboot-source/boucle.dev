@@ -12,3 +12,4 @@
 {"timestamp":"2026-08-27T21:29:32Z","role":"reviewer","outcome":"UNCERTAIN","detail":"iteration 4"}
 {"timestamp":"2026-08-27T21:30:40Z","role":"worker","iteration":1,"exit_code":0,"prompt_chars":18424,"tokens":"n/a","cost_usd":"n/a","model":"deepseek-v4-flash:0731","provider":"boucle","skills":[],"arm":"full","setup_fail":"","swarm_spawns":0}
 {"timestamp":"2026-08-27T21:30:42Z","role":"worker","outcome":"committed","detail":"iteration 1"}
+{"timestamp":"2026-08-27T21:30:58Z","role":"reviewer","iteration":5,"exit_code":1,"prompt_chars":39403,"tokens":"n/a","cost_usd":"n/a","model":"","provider":"","skills":[],"arm":"full","setup_fail":"","swarm_spawns":0}
