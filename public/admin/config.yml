@@ -157,8 +157,9 @@ collections:
   - name: cards
     label: Why boucle — cards
     label_singular: Card
-    description: The five promise cards. Each card has a title, pain point,
-      answer, and an icon asset path (public/icons/card-N.svg).
+    description: The promise cards. Each card has a title, pain point,
+      answer, an icon asset path (public/icons/card-N.svg), and an optional
+      text link (linkLabel/linkHref).
     folder: src/content/cards
     extension: md
     format: frontmatter
@@ -174,6 +175,8 @@ collections:
         label: Icon
         widget: image
         hint: Pick the card icon SVG from the Assets library, e.g. /icons/card-1.svg.
+      - { name: linkLabel, label: Link label, widget: string, required: false }
+      - { name: linkHref, label: Link URL, widget: string, required: false }
 
   # ---------- Quick start (single file) ----------
   - name: quickStart
@@ -201,27 +204,6 @@ collections:
           - { name: transitionSuffix, label: Transition suffix, widget: string }
           - { name: docsLabel, label: Docs link label, widget: string }
           - { name: docsHref, label: Docs link URL, widget: string }
-
-  # ---------- Open source (single file) ----------
-  - name: openSource
-    label: Open source
-    label_singular: Open source
-    description: Open-source section — positioning, Contribute CTA, and the
-      efficiency closing argument. The licence (AGPL-3.0) lives only in the footer.
-    files:
-      - name: open-source
-        label: Open source
-        file: src/content/open-source/open-source.md
-        fields:
-          - { name: title, label: Title, widget: string }
-          - { name: sectionAriaLabel, label: Section aria-label, widget: string }
-          - { name: positioning, label: Positioning text, widget: text }
-          - { name: ctaLabel, label: CTA label, widget: string }
-          - { name: ctaHref, label: CTA link, widget: string }
-          - { name: headline, label: Headline, widget: string }
-          - { name: capacityText, label: Capacity text, widget: text }
-          - { name: costLinkLabel, label: Cost link label, widget: string }
-          - { name: costHref, label: Cost link URL, widget: string }
 
   # ---------- Footer (single file) ----------
   - name: footer

@@ -103,6 +103,9 @@ const cards = defineCollection({
     answer: z.string(),
     // Asset path to the card icon SVG (public/icons/card-N.svg).
     icon: z.string(),
+    // Optional text link rendered inside the card body (only when both are set).
+    linkLabel: z.string().optional(),
+    linkHref: z.string().optional(),
   }),
 });
 
@@ -151,25 +154,6 @@ const footer = defineCollection({
   }),
 });
 
-// Open source section (between quick-start and footer): the community door.
-// Positioning line + Contribute CTA, and the efficiency ("Ship 10x more")
-// closing argument with a linked capacity figure. The licence (AGPL-3.0) is
-// NOT repeated here — it lives in the footer's License link.
-const openSource = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/open-source' }),
-  schema: z.object({
-    title: z.string(),
-    sectionAriaLabel: z.string(),
-    positioning: z.string(),
-    ctaLabel: z.string(),
-    ctaHref: z.string(),
-    headline: z.string(),
-    capacityText: z.string(),
-    costLinkLabel: z.string(),
-    costHref: z.string(),
-  }),
-});
-
 export const collections = {
   hero,
   howItWorks,
@@ -177,6 +161,5 @@ export const collections = {
   whyBoucle,
   cards,
   quickStart,
-  openSource,
   footer,
 };
