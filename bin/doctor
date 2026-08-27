@@ -1,0 +1,500 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2154
+# bin/doctor — Day 0 verification. Run before anything, after every config change.
+# ~20 checks. Saves a half-day of indirect debugging.
+
+set -euo pipefail
+
+FORGE="${BOUCLE_FORGE:-gitlab}"
+AUDIT_MODE=0
+
+# Parse arguments
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --forge)
+      FORGE="$2"
+      shift 2
+      ;;
+    --audit)
+      AUDIT_MODE=1
+      shift
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# The config audit is read-only and forge-independent: it must run before a
+# project is even reachable, which is exactly when it is most useful.
+if [ "$AUDIT_MODE" -eq 1 ]; then
+  PROJECT_ID="${BOUCLE_PROJECT_ID:-}"
+else
+  PROJECT_ID="${BOUCLE_PROJECT_ID:?BOUCLE_PROJECT_ID must be set}"
+fi
+HOST="${BOUCLE_FORGE_HOST:-gitlab.example.com}"
+
+pass() { echo "  ✓ $1"; }
+warn() { echo "  ⚠ $1" >&2; }
+fail() {
+  echo "  ✗ $1" >&2
+  FAILURES=$((FAILURES + 1))
+}
+FAILURES=0
+
+[ "$AUDIT_MODE" -eq 1 ] || echo "boucle doctor — checking prerequisites..."
+
+# Resolve BOUCLE_HOME early (needed for forge source + agents check)
+BOUCLE_HOME="${BOUCLE_HOME:-}"
+if [ -z "$BOUCLE_HOME" ]; then
+  if [ -d "$(dirname "$0")/../.jcode" ]; then
+    BOUCLE_HOME="$(cd "$(dirname "$0")/.." && pwd)"
+  elif [ -d "$(dirname "$0")/../.boucle" ]; then
+    BOUCLE_HOME="$(cd "$(dirname "$0")/.." && pwd)/.boucle"
+  fi
+fi
+
+# ── Config audit (--audit, #41) ───────────────────────────────────────
+# bin/doctor's default mode checks that the forge is reachable and wired.
+# This checks that the CONFIGURATION is coherent — the class of problem a
+# consumer otherwise discovers mid-loop, one failed run at a time.
+#
+# Strictly read-only: no label writes, no comments, no issue creation.
+#
+# Severities are weighted so blockers dominate: a repo that cannot complete
+# a loop must not score well because everything else is tidy.
+AUDIT_BLOCKERS=0
+AUDIT_DEGRADED=0
+AUDIT_ADVISORIES=0
+
+audit_blocker() {
+  echo "  ✗ BLOCKER  $1" >&2
+  echo "             → $2" >&2
+  AUDIT_BLOCKERS=$((AUDIT_BLOCKERS + 1))
+}
+audit_degraded() {
+  echo "  ⚠ DEGRADED $1" >&2
+  echo "             → $2" >&2
+  AUDIT_DEGRADED=$((AUDIT_DEGRADED + 1))
+}
+audit_advisory() {
+  echo "  · ADVISORY $1"
+  echo "             → $2"
+  AUDIT_ADVISORIES=$((AUDIT_ADVISORIES + 1))
+}
+
+run_config_audit() {
+  echo "boucle doctor --audit — configuration readiness"
+  echo ""
+
+  local vars_url="https://${HOST}/${PROJECT_ID:-<project>}/-/settings/ci_cd"
+  [ "$FORGE" = "github" ] && vars_url="https://github.com/${PROJECT_ID:-<owner/repo>}/settings/secrets/actions"
+
+  # The loop cannot run at all without a key.
+  if [ -z "${BOUCLE_LLM_API_KEY:-}" ]; then
+    audit_blocker "BOUCLE_LLM_API_KEY is not set" \
+      "Add it as a MASKED variable: $vars_url"
+  else
+    pass "BOUCLE_LLM_API_KEY is set"
+  fi
+
+  # external mode has nowhere to point e2e without a live URL.
+  local deploy_mode="${BOUCLE_DEPLOY_MODE:-self}"
+  if [ "$deploy_mode" = "external" ] && [ -z "${BOUCLE_LIVE_URL:-}" ]; then
+    audit_blocker "BOUCLE_DEPLOY_MODE=external without BOUCLE_LIVE_URL" \
+      "external mode never deploys, so e2e has no target. Set BOUCLE_LIVE_URL at $vars_url"
+  else
+    pass "deploy mode '$deploy_mode' is coherent"
+  fi
+
+  # Configured but inert: looks like a safety net, is not one.
+  if [ -n "${BOUCLE_FALLBACK_PROVIDER:-}" ]; then
+    if [ -z "${BOUCLE_FALLBACK_BASE_URL:-}" ] || [ -z "${BOUCLE_FALLBACK_API_KEY:-}" ]; then
+      audit_degraded "BOUCLE_FALLBACK_PROVIDER is set but inert" \
+        "It needs BOUCLE_FALLBACK_BASE_URL and BOUCLE_FALLBACK_API_KEY. Provider outages will escalate to a human instead of failing over."
+    else
+      pass "provider fallback is fully configured"
+    fi
+  fi
+
+  # A relaxed re-trigger fires while the job is still running.
+  local staleness="${BOUCLE_STALENESS_THRESHOLD:-2400}"
+  case "$staleness" in
+    '' | *[!0-9]*) audit_degraded "BOUCLE_STALENESS_THRESHOLD is not a number ('$staleness')" "Falling back to 2400. Set an integer number of seconds." ;;
+    *)
+      if [ "$staleness" -le 1800 ]; then
+        audit_degraded "BOUCLE_STALENESS_THRESHOLD=$staleness is below the max job timeout" \
+          "It must exceed 1800s (30 min) or the doctor re-triggers issues whose job is still running."
+      else
+        pass "staleness threshold (${staleness}s) exceeds the max job timeout"
+      fi
+      ;;
+  esac
+
+  # Silently wrong: the quiet window applies at the wrong hours.
+  if [ "${BOUCLE_DND_ENABLED:-false}" = "true" ] && [ "${BOUCLE_DND_TZ:-UTC}" = "UTC" ]; then
+    audit_advisory "BOUCLE_DND_TZ is UTC" \
+      "If you are not in UTC, the quiet window applies at the wrong hours. Set an IANA name, e.g. Europe/Paris."
+  fi
+
+  # preview review mode with the renderer disabled.
+  if [ "${BOUCLE_REVIEW_MODE:-preview}" = "preview" ] && [ "${BOUCLE_PREVIEW_DISABLE:-false}" = "true" ]; then
+    audit_advisory "BOUCLE_PREVIEW_DISABLE=true with BOUCLE_REVIEW_MODE=preview" \
+      "The spec gate loses its visual mockup. Intentional on a non-UI repo; otherwise unset it."
+  fi
+
+  # Unknown enum values silently fall back.
+  case "${BOUCLE_SPEC_PROFILE:-product}" in
+    product | strict | off) pass "spec profile '${BOUCLE_SPEC_PROFILE:-product}' is valid" ;;
+    *) audit_advisory "BOUCLE_SPEC_PROFILE='${BOUCLE_SPEC_PROFILE}' is unknown" "Falling back to 'product'. Valid: product, strict, off." ;;
+  esac
+  case "${BOUCLE_REVIEW_ANCHORING:-full}" in
+    full | criteria-only | none) : ;;
+    *) audit_advisory "BOUCLE_REVIEW_ANCHORING='${BOUCLE_REVIEW_ANCHORING}' is unknown" "Falling back to 'full'. Valid: full, criteria-only, none." ;;
+  esac
+  case "${BOUCLE_RETRY_STRATEGY:-adaptive}" in
+    adaptive | preserve | reset) : ;;
+    *) audit_advisory "BOUCLE_RETRY_STRATEGY='${BOUCLE_RETRY_STRATEGY}' is unknown" "Falling back to 'preserve'. Valid: adaptive, preserve, reset." ;;
+  esac
+  if [ -n "${BOUCLE_NOTIFY_URL:-}" ]; then
+    case "${BOUCLE_NOTIFY_FORMAT:-slack}" in
+      slack | telegram | ntfy | raw) pass "notification format '${BOUCLE_NOTIFY_FORMAT:-slack}' is valid" ;;
+      *) audit_advisory "BOUCLE_NOTIFY_FORMAT='${BOUCLE_NOTIFY_FORMAT}' is unknown" "Falling back to 'slack'. Valid: slack, telegram, ntfy, raw." ;;
+    esac
+  fi
+
+  # A malformed price table silently yields no dollar figures.
+  if [ -n "${BOUCLE_PRICING_JSON:-}" ]; then
+    if echo "${BOUCLE_PRICING_JSON}" | jq -e . > /dev/null 2>&1; then
+      pass "BOUCLE_PRICING_JSON parses"
+    else
+      audit_degraded "BOUCLE_PRICING_JSON is not valid JSON" \
+        "Cost reporting will show tokens with no dollar figures. Expected: {\"model\":{\"in\":0.1,\"out\":0.3}}"
+    fi
+  fi
+
+  # The worker reads the charter before any UI work.
+  if [ -x "${BOUCLE_HOME}/bin/check-design-charter" ]; then
+    if "${BOUCLE_HOME}/bin/check-design-charter" > /dev/null 2>&1; then
+      pass "design charter is valid"
+    else
+      audit_advisory "the design charter is missing or incomplete" \
+        "Run ${BOUCLE_HOME}/bin/check-design-charter for details. UI work will fall back to generic design defaults."
+    fi
+  fi
+
+  # A stale root .gitlab-ci.yml (full engine copy instead of a shim)
+  # silently bypasses the self-update: the engine syncs
+  # .boucle/.gitlab-ci.yml, but GitLab uses the root file. A full copy
+  # drifts from the engine and references paths that don't exist outside
+  # .boucle/ (e.g. $CI_PROJECT_DIR/bin/render-preview.cjs instead of
+  # $BOUCLE_HOME/bin/render-preview.cjs — the triage render-preview
+  # failure class).
+  if [ "$FORGE" = "gitlab" ]; then
+    local _root="."
+    case "${BOUCLE_HOME:-}" in
+      */.boucle) _root="${BOUCLE_HOME%/.boucle}" ;;
+      *) _root="${BOUCLE_HOME:-.}" ;;
+    esac
+    if [ -f "$_root/.gitlab-ci.yml" ] && [ -f "$_root/.boucle/.gitlab-ci.yml" ]; then
+      if grep -q '^stages:' "$_root/.gitlab-ci.yml" 2>/dev/null; then
+        audit_degraded "root .gitlab-ci.yml is a full copy, not a shim" \
+          "The self-update syncs .boucle/.gitlab-ci.yml but GitLab uses the root file. Replace the root .gitlab-ci.yml with: include: [{local: .boucle/.gitlab-ci.yml}]"
+      else
+        pass "root .gitlab-ci.yml is a shim (self-update stays in sync)"
+      fi
+    fi
+  fi
+
+  # Weighted so blockers dominate: a repo that cannot complete a loop must
+  # not score well because everything else is tidy.
+  local score=$((100 - AUDIT_BLOCKERS * 40 - AUDIT_DEGRADED * 15 - AUDIT_ADVISORIES * 3))
+  [ "$score" -lt 0 ] && score=0
+
+  echo ""
+  echo "Readiness: ${score}/100  (${AUDIT_BLOCKERS} blocker(s), ${AUDIT_DEGRADED} degraded, ${AUDIT_ADVISORIES} advisory)"
+  if [ "$AUDIT_BLOCKERS" -gt 0 ]; then
+    echo "The loop cannot complete in this configuration." >&2
+    return 1
+  fi
+  return 0
+}
+
+if [ "$AUDIT_MODE" -eq 1 ]; then
+  run_config_audit
+  exit $?
+fi
+
+# Source forge backend
+if [ "$FORGE" = "github" ]; then
+  # shellcheck disable=SC1090
+  source "$BOUCLE_HOME/bin/forge/github.sh"
+fi
+
+# ── Forge-specific checks ──────────────────────────────────────────────
+if [ "$FORGE" = "gitlab" ]; then
+
+  # ── Labels ─────────────────────────────────────────────────────────────
+  # shellcheck disable=SC1010 # 'done' is a label name, not the loop keyword
+  for label in triage needs-info todo working review human blocked done split approval approved spec-review spec-approved merging; do
+    if glab api --hostname "$HOST" "/projects/$PROJECT_ID/labels?search=boucle:$label" 2> /dev/null | jq -e '.[0]' > /dev/null 2>&1; then
+      pass "label boucle:$label exists"
+    else
+      fail "label boucle:$label missing"
+    fi
+  done
+
+  for size in s m l; do
+    if glab api --hostname "$HOST" "/projects/$PROJECT_ID/labels?search=size:$size" 2> /dev/null | jq -e '.[0]' > /dev/null 2>&1; then
+      pass "label size:$size exists"
+    else
+      fail "label size:$size missing"
+    fi
+  done
+
+  # ── CI Variables ───────────────────────────────────────────────────────
+  for var in BOUCLE_TOKEN BOUCLE_ENABLED BOUCLE_TRIGGER_TOKEN BOUCLE_SPEC_PROFILE; do
+    if glab api --hostname "$HOST" "/projects/$PROJECT_ID/variables/$var" 2> /dev/null | jq -e '.key' > /dev/null 2>&1; then
+      pass "CI variable $var exists"
+    else
+      fail "CI variable $var missing"
+    fi
+  done
+
+  # ── CLOUDFLARE_API_TOKEN (optional) ───────────────────────────────
+  if glab api --hostname "$HOST" "/projects/$PROJECT_ID/variables/CLOUDFLARE_API_TOKEN" 2> /dev/null | jq -e '.key' > /dev/null 2>&1; then
+    pass "CI variable CLOUDFLARE_API_TOKEN exists"
+  else
+    warn "CLOUDFLARE_API_TOKEN not set — CF Pages deploy will not be available"
+  fi
+
+  # ── BOUCLE_LLM_API_KEY (masked) ──────────────────────────────────
+  if glab api --hostname "$HOST" "/projects/$PROJECT_ID/variables/BOUCLE_LLM_API_KEY" 2> /dev/null | jq -e '.key // empty' > /dev/null 2>&1; then
+    pass "BOUCLE_LLM_API_KEY is set"
+  else
+    fail "BOUCLE_LLM_API_KEY missing — jcode cannot authenticate to the LLM provider"
+  fi
+
+  # ── BOUCLE_LLM_BASE_URL ──────────────────────────────────────────
+  if glab api --hostname "$HOST" "/projects/$PROJECT_ID/variables/BOUCLE_LLM_BASE_URL" 2> /dev/null | jq -e '.key // empty' > /dev/null 2>&1; then
+    pass "BOUCLE_LLM_BASE_URL is set"
+  else
+    warn "BOUCLE_LLM_BASE_URL not set — bin/jc will use its built-in default"
+  fi
+
+  # ── Branch protection ──────────────────────────────────────────────────
+  # Resolve the default branch (main/master) via the API instead of
+  # hardcoding "master" — the product must work on any default branch.
+  DEFAULT_BRANCH=$(glab api --hostname "$HOST" "/projects/$PROJECT_ID" 2> /dev/null | jq -r '.default_branch // empty' 2> /dev/null)
+  [ -z "$DEFAULT_BRANCH" ] && DEFAULT_BRANCH="main"
+  PROTECTION=$(glab api --hostname "$HOST" "/projects/$PROJECT_ID/protected_branches/$DEFAULT_BRANCH" 2> /dev/null || echo "")
+  if echo "$PROTECTION" | jq -e '.merge_access_levels[0].access_level == 40' > /dev/null 2>&1; then
+    pass "$DEFAULT_BRANCH protected, merge=Maintainer only"
+  else
+    fail "$DEFAULT_BRANCH not protected or merge access too broad"
+  fi
+
+  # Check bot push permission (required for label changes, MR commits, etc.)
+  PUSH_LEVEL=$(echo "$PROTECTION" | jq -r '.push_access_levels[0].access_level // empty' 2> /dev/null)
+  if [ "$PUSH_LEVEL" = "30" ] || [ "$PUSH_LEVEL" = "40" ]; then
+    pass "bot can push to $DEFAULT_BRANCH (push_access_level=$PUSH_LEVEL)"
+  else
+    fail "bot cannot push to $DEFAULT_BRANCH (push_access_level=${PUSH_LEVEL:-none}, need 30+)"
+  fi
+
+  # ── Trigger token valid ────────────────────────────────────────────────
+  if glab api --hostname "$HOST" "/projects/$PROJECT_ID/triggers" 2> /dev/null | jq -e '.[0].token' > /dev/null 2>&1; then
+    pass "trigger token exists"
+  else
+    fail "no trigger token found"
+  fi
+
+  # ── Runner online ──────────────────────────────────────────────────────
+  # The runner tag is project-specific infrastructure — boucle must not
+  # hardcode it. Require BOUCLE_RUNS_ON to be set (via CI variable or
+  # env); skip the check with a warning if unset rather than guessing.
+  # BOUCLE_RUNS_ON is the forge-agnostic runner selector (GitLab: runner
+  # tag; GitHub: runs-on expression, default ubuntu-latest).
+  if [ -z "${BOUCLE_RUNS_ON:-}" ]; then
+    warn "BOUCLE_RUNS_ON unset — skipping runner-online check (set it to your project's runner tag)"
+  else
+    if glab api --hostname "$HOST" "/projects/$PROJECT_ID/runners" 2> /dev/null | jq -e ".[] | select(.status==\"online\" and (.tag_list | contains([\"$BOUCLE_RUNS_ON\"])))" > /dev/null 2>&1; then
+      pass "runner with tag '$BOUCLE_RUNS_ON' online"
+    else
+      fail "no runner with tag '$BOUCLE_RUNS_ON' online"
+    fi
+  fi
+
+else
+  # ── GitHub checks ──────────────────────────────────────────────────────
+
+  # ── Labels ─────────────────────────────────────────────────────────────
+  LABEL_JSON=$(forge_label_list)
+  # shellcheck disable=SC1010 # 'done' is a label name, not the loop keyword
+  for label in triage needs-info todo working review human blocked done split approval approved spec-review spec-approved merging; do
+    if echo "$LABEL_JSON" | jq -e ".[] | select(.name == \"boucle:$label\")" > /dev/null 2>&1; then
+      pass "label boucle:$label exists"
+    else
+      fail "label boucle:$label missing"
+    fi
+  done
+
+  for size in s m l; do
+    if echo "$LABEL_JSON" | jq -e ".[] | select(.name == \"size:$size\")" > /dev/null 2>&1; then
+      pass "label size:$size exists"
+    else
+      fail "label size:$size missing"
+    fi
+  done
+
+  # ── Repo Secrets ───────────────────────────────────────────────────────
+  SECRETS=$(GH_TOKEN="$BOUCLE_TOKEN" gh secret list --repo "$BOUCLE_PROJECT_ID" 2> /dev/null | awk '{print $1}')
+  for var in BOUCLE_TOKEN PI_AUTH BOUCLE_LLM_API_KEY; do
+    if echo "$SECRETS" | grep -qx "$var"; then
+      pass "secret $var exists"
+    else
+      fail "secret $var missing"
+    fi
+  done
+  if echo "$SECRETS" | grep -qx "CLOUDFLARE_API_TOKEN"; then
+    pass "secret CLOUDFLARE_API_TOKEN exists"
+  else
+    warn "CLOUDFLARE_API_TOKEN not set — CF Pages deploy will not be available"
+  fi
+
+  # ── Repo Variables ─────────────────────────────────────────────────────
+  VARS=$(GH_TOKEN="$BOUCLE_TOKEN" gh variable list --repo "$BOUCLE_PROJECT_ID" 2> /dev/null | awk '{print $1}')
+  for var in BOUCLE_ENABLED BOUCLE_SPEC_PROFILE BOUCLE_UPDATE_MODE BOUCLE_FORGE BOUCLE_LLM_BASE_URL; do
+    if echo "$VARS" | grep -qx "$var"; then
+      pass "variable $var exists"
+    else
+      fail "variable $var missing"
+    fi
+  done
+
+  # ── Branch protection ──────────────────────────────────────────────────
+  DEFAULT_BRANCH=$(forge_project_get | jq -r '.default_branch // empty' 2> /dev/null)
+  [ -z "$DEFAULT_BRANCH" ] && DEFAULT_BRANCH="main"
+  if GH_TOKEN="$BOUCLE_TOKEN" gh api "/repos/$BOUCLE_PROJECT_ID/branches/$DEFAULT_BRANCH/protection" 2> /dev/null | jq -e '.required_pull_request_reviews' > /dev/null 2>&1; then
+    pass "$DEFAULT_BRANCH protected (PR reviews required)"
+  else
+    fail "$DEFAULT_BRANCH not protected or PR reviews not required"
+  fi
+
+  # ── Runner online ──────────────────────────────────────────────────────
+  # GitHub-hosted runners (default: BOUCLE_RUNS_ON=ubuntu-latest) need no
+  # runner check. Only check when BOUCLE_RUNS_ON is set to a self-hosted
+  # runner (e.g. '["self-hosted", "boucle"]'). Extract the label from the
+  # runs-on expression and verify a runner with that label is online.
+  if [ -z "${BOUCLE_RUNS_ON:-}" ] || ! echo "$BOUCLE_RUNS_ON" | grep -q 'self-hosted'; then
+    warn "BOUCLE_RUNS_ON not self-hosted — skipping runner-online check (GitHub-hosted default)"
+  else
+    RUNNER_LABEL=$(echo "$BOUCLE_RUNS_ON" | grep -oE '"[a-zA-Z0-9_-]+"' | tr -d '"' | tail -1)
+    if [ -z "$RUNNER_LABEL" ]; then
+      warn "could not parse runner label from BOUCLE_RUNS_ON='$BOUCLE_RUNS_ON' — skipping runner-online check"
+    elif forge_runner_check "$RUNNER_LABEL"; then
+      pass "self-hosted runner with label '$RUNNER_LABEL' online"
+    else
+      fail "no self-hosted runner with label '$RUNNER_LABEL' online"
+    fi
+  fi
+
+fi
+
+# ── Agents parse ───────────────────────────────────────────────────────
+# Consumers install the engine as a .boucle/ submodule (BOUCLE_HOME); the
+# boucle repo itself (dogfood) keeps agents at root .jcode/. Check both.
+for role in triage worker reviewer e2e; do
+  if [ -f "$BOUCLE_HOME/.jcode/agents/$role.md" ]; then
+    pass "agent $role.md exists"
+  else
+    fail "agent $role.md missing ($BOUCLE_HOME/.jcode/agents/$role.md)"
+  fi
+done
+
+# ── jcode reachable ────────────────────────────────────────────────
+if command -v jcode &> /dev/null; then
+  pass "jcode in PATH"
+else
+  fail "jcode not in PATH"
+fi
+
+# ── CLOUDFLARE_API_TOKEN can deploy ────────────────────────────────────
+if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+  if [ -n "${BOUCLE_DEPLOY_PROJECT:-}" ]; then
+    if npx wrangler pages project list 2> /dev/null | grep -q "$BOUCLE_DEPLOY_PROJECT"; then
+      pass "CF Pages project '$BOUCLE_DEPLOY_PROJECT' exists"
+    else
+      fail "CF Pages project '$BOUCLE_DEPLOY_PROJECT' not found"
+    fi
+  else
+    warn "CLOUDFLARE_API_TOKEN set but BOUCLE_DEPLOY_PROJECT not set — skipping CF Pages project check"
+  fi
+else
+  warn "CLOUDFLARE_API_TOKEN not set — CF Pages checks skipped (set CLOUDFLARE_API_TOKEN for Cloudflare deploy)"
+fi
+
+# ── Bot identity vs token owner (#32) ────────────────────────────────────
+# The anti-loop guard in dispatch discards every webhook whose actor equals
+# BOUCLE_BOT_USERNAME. When that name is the account owning BOUCLE_TOKEN,
+# the guard discards the human's OWN actions too: opening an issue, replying
+# on boucle:needs-info, approving the spec. The loop then never fires for
+# that account and nothing reports it — a silently inert install.
+#
+# This is the default outcome of a GitHub install, where bin/setup cannot
+# provision a bot identity and seeds BOUCLE_BOT_USERNAME with the PAT
+# owner's login. BOUCLE_MONO_USER=true is the supported way to say "yes,
+# one account runs everything" — it swaps the actor guard for the
+# label-state + agent-marker guard, which does not depend on identity.
+BOT_USERNAME_EXPECTED="${BOUCLE_BOT_USERNAME:-up-bot}"
+TOKEN_OWNER_LOGIN=""
+if [ "$FORGE" = "github" ]; then
+  TOKEN_OWNER_LOGIN=$(forge_current_user_login)
+else
+  TOKEN_OWNER_LOGIN=$(glab api --hostname "$HOST" /user 2> /dev/null | jq -r '.username // empty' 2> /dev/null || true)
+fi
+
+if [ -z "$TOKEN_OWNER_LOGIN" ]; then
+  # Never turn a transient API failure into a red doctor: an expired token
+  # or a network blip must not be reported as a misconfiguration.
+  warn "could not resolve the BOUCLE_TOKEN owner — skipping the bot-identity check (expired token or API unreachable?)"
+elif [ "$TOKEN_OWNER_LOGIN" != "$BOT_USERNAME_EXPECTED" ]; then
+  pass "bot identity @$BOT_USERNAME_EXPECTED is distinct from the token owner @$TOKEN_OWNER_LOGIN"
+elif [ -n "${BOUCLE_MONO_USER:-}" ] && [ "${BOUCLE_MONO_USER}" != "false" ]; then
+  pass "mono-user mode: boucle acts as @$TOKEN_OWNER_LOGIN (label-state guard, no actor filtering)"
+else
+  fail "BOUCLE_BOT_USERNAME is the BOUCLE_TOKEN owner (@$TOKEN_OWNER_LOGIN) — the anti-loop guard will
+      discard every action you take and the loop will never fire for you. Either give boucle a
+      distinct identity (a bot/service account), or set BOUCLE_MONO_USER=true to run single-account."
+fi
+
+# ── Mode-specific checks ─────────────────────────────────────────────────
+DEPLOY_MODE="${BOUCLE_DEPLOY_MODE:-self}"
+if [ "$DEPLOY_MODE" = "external" ]; then
+  if [ -z "${BOUCLE_LIVE_URL:-}" ]; then
+    fail "BOUCLE_DEPLOY_MODE=external requires BOUCLE_LIVE_URL (consumer's own deploy target URL)"
+  else
+    pass "BOUCLE_LIVE_URL set for external deploy mode"
+  fi
+  if [ -z "${BOUCLE_PRODUCTION_URL:-}" ]; then
+    warn "BOUCLE_PRODUCTION_URL not set — e2e will use BOUCLE_LIVE_URL only"
+  fi
+elif [ "$DEPLOY_MODE" = "self" ]; then
+  if [ -z "${BOUCLE_DEPLOY_CMD:-}" ]; then
+    fail "BOUCLE_DEPLOY_MODE=self requires BOUCLE_DEPLOY_CMD"
+  else
+    pass "BOUCLE_DEPLOY_CMD set"
+  fi
+else
+  warn "Unknown BOUCLE_DEPLOY_MODE='$DEPLOY_MODE' — expected 'self' or 'external'"
+fi
+
+echo ""
+if [ "$FAILURES" -eq 0 ]; then
+  echo "All checks passed."
+  exit 0
+else
+  echo "$FAILURES check(s) failed." >&2
+  exit 1
+fi

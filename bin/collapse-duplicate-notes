@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+# Collapse duplicate boucle comments posted in the same run.
+# When an agent posts a draft then a final, REPLACE the draft in place
+# (PUT the final body onto the draft's note id) so the note id — and the
+# forge URL anchor (#note_<id>) — stays stable. Then delete any redundant
+# copies (extra drafts, extra finals). When an agent posts a second "v2"
+# final, replace the first with the v2 content and delete the redundant
+# copies. Best-effort: always exits 0.
+#
+# Usage:
+#   bin/collapse-duplicate-notes <type> <project_id> <note_iid> <pre_id> [host] [sha]
+#
+# type: triage | reviewer | e2e
+# project_id: GitLab project ID (numeric) or "proj/path" for --repo fallback
+# note_iid: issue IID (triage/e2e) or MR IID (reviewer)
+# pre_id: highest note ID that existed BEFORE this run (0 = first run)
+# host: optional forge host (default: $BOUCLE_FORGE_HOST or gitlab.com)
+# sha: optional head SHA (reviewer/e2e verdict anchoring)
+#
+# Behavior:
+#   1. Fetch all notes for the issue/MR.
+#   2. Filter to final comments of <type> with id > pre_id.
+#   3. Filter to draft comments of <type> with id > pre_id.
+#   4. If no finals exist: exit 0 (the log-scraping fallback may promote a
+#      draft to a final; deleting it here would lose the only output).
+#   5. Pick the TARGET note id (the one to keep): the OLDEST note id among
+#      drafts+finals from this run. This keeps the draft's note id stable
+#      when a draft was posted first, so the forge URL anchor (#note_<id>)
+#      the human may already have open keeps pointing at the final content.
+#   6. PUT the NEWEST final body onto the TARGET note id (replace in place).
+#   7. DELETE every other matching note id (all drafts + all finals except
+#      the target). A draft is superseded by the final, not duplicated.
+#   8. Any API failure is logged to stderr but does not change exit code.
+set -u
+
+TYPE="${1:-}"
+PROJECT_ID="${2:-}"
+NOTE_IID="${3:-}"
+PRE_ID="${4:-0}"
+HOST="${5:-${BOUCLE_FORGE_HOST:-gitlab.com}}"
+SHA="${6:-}"
+
+log() { printf '%s\n' "$*" >&2; }
+
+if [[ -z "$TYPE" || -z "$PROJECT_ID" || -z "$NOTE_IID" ]]; then
+  log "collapse-duplicate-notes: missing required arg (type=$TYPE project=$PROJECT_ID iid=$NOTE_IID)"
+  exit 0
+fi
+
+# ── Forge backend bootstrap ─────────────────────────────────────────
+# This script runs standalone in the CI job (not via bin/boucle-ci), so
+# it must source the forge abstraction itself. BOUCLE_FORGE defaults to
+# gitlab when the script is called outside CI (local dev, tests).
+BOUCLE_HOME="${BOUCLE_HOME:-}"
+if [ -z "$BOUCLE_HOME" ]; then
+  if [ -d "${CI_PROJECT_DIR:-}/.boucle/bin" ]; then
+    BOUCLE_HOME="$CI_PROJECT_DIR/.boucle"
+  else
+    BOUCLE_HOME="$(cd "$(dirname "$0")/.." && pwd)"
+  fi
+fi
+export BOUCLE_HOME
+export BOUCLE_FORGE="${BOUCLE_FORGE:-gitlab}"
+# shellcheck source=forge/common.sh
+. "$BOUCLE_HOME/bin/forge/common.sh"
+type forge_init &> /dev/null && {
+  type forge_issue_get &> /dev/null || forge_init
+} || true
+export BOUCLE_FORGE_HOST="$HOST"
+export BOUCLE_PROJECT_ID="$PROJECT_ID"
+
+case "$TYPE" in
+  triage)
+    KIND="issue"
+    ENDPOINT="projects/${PROJECT_ID}/issues/${NOTE_IID}/notes"
+    # boucle:triage marker + ## TL;DR (final only) + ## Disposition section
+    FILTER='.[] | select(.body | test("<!-- boucle:triage")) | select(.body | test("(?m)^## TL;DR")) | select(.body | test("(?m)^## Disposition"))'
+    DRAFT_FILTER='.[] | select(.body | test("<!-- boucle:draft role=triage"))'
+    ;;
+  reviewer)
+    KIND="mr"
+    ENDPOINT="projects/${PROJECT_ID}/merge_requests/${NOTE_IID}/notes"
+    FILTER='.[] | select(.body | test("<!-- boucle:verdict")) | select(.body | test("role=reviewer"))'
+    DRAFT_FILTER='.[] | select(.body | test("<!-- boucle:draft role=reviewer"))'
+    [[ -n "$SHA" ]] && FILTER="${FILTER} | select(.body | test(\"${SHA}\"))"
+    ;;
+  e2e)
+    KIND="issue"
+    ENDPOINT="projects/${PROJECT_ID}/issues/${NOTE_IID}/notes"
+    FILTER='.[] | select(.body | test("<!-- boucle:verdict")) | select(.body | test("role=e2e"))'
+    DRAFT_FILTER='.[] | select(.body | test("<!-- boucle:draft role=e2e"))'
+    [[ -n "$SHA" ]] && FILTER="${FILTER} | select(.body | test(\"${SHA}\"))"
+    ;;
+  *)
+    log "collapse-duplicate-notes: unknown type '$TYPE' (expected triage|reviewer|e2e)"
+    exit 0
+    ;;
+esac
+
+# Fetch all notes via the forge contract. Tolerate failure (empty result →
+# nothing to collapse).
+if [ "$KIND" = "mr" ]; then
+  NOTES_JSON="$(forge_mr_notes "$NOTE_IID" 2> /dev/null || true)"
+else
+  NOTES_JSON="$(forge_issue_notes "$NOTE_IID" 2> /dev/null || true)"
+fi
+if [[ -z "$NOTES_JSON" ]]; then
+  log "collapse-duplicate-notes: no notes fetched for $ENDPOINT"
+  exit 0
+fi
+
+# Filter to matching final note IDs only (one per line, sorted oldest→newest).
+# IDs are integers with no embedded newlines, so wc/head/tail are safe here.
+# Note bodies DO contain newlines, so they are fetched separately below.
+# pre_id=0 selects all (first run).
+FINAL_IDS="$(printf '%s' "$NOTES_JSON" | jq -r "${FILTER} | select(.id > ${PRE_ID}) | .id" 2> /dev/null | sort -n)"
+
+# Filter to matching draft note IDs (superseded by any final from this run).
+DRAFT_IDS="$(printf '%s' "$NOTES_JSON" | jq -r "${DRAFT_FILTER} | select(.id > ${PRE_ID}) | .id" 2> /dev/null | sort -n)"
+
+# If no finals exist, exit without touching drafts — the log-scraping
+# fallback may promote a draft to a final, and deleting it here would lose
+# the only output the agent produced.
+if [[ -z "$FINAL_IDS" ]]; then
+  log "collapse-duplicate-notes: no final $TYPE notes (pre_id=$PRE_ID) — leaving drafts untouched"
+  exit 0
+fi
+
+# ── Replace drafts in place + collapse duplicate finals ───────────────
+# The agent posts a draft (<!-- boucle:draft role=X -->) first, then a
+# final (<!-- boucle:triage v=1 --> / <!-- boucle:verdict ... -->). The
+# draft and the final are two separate notes. Replacing the draft in
+# place (PUT the final body onto the draft's note id) keeps the note id
+# — and the forge URL anchor (#note_<id>) the human may already have
+# open — stable across the draft→final transition. The alternative
+# (DELETE the draft, keep the final as a new note) invalidates the
+# anchor and creates a visible "deleted comment" gap in the thread.
+#
+# Target note id = the OLDEST note id among drafts+finals from this run.
+# This is the draft's id when a draft was posted first (the common case),
+# or the oldest final's id when only finals were posted (v2 collapse).
+# We PUT the NEWEST final body onto the target id, then DELETE every
+# other matching note (all drafts + all finals except the target).
+
+# All matching note ids from this run (drafts + finals), oldest→newest.
+ALL_IDS="$(printf '%s\n' "${FINAL_IDS}" "${DRAFT_IDS}" | grep -E '^[0-9]+$' | sort -n | awk '!seen[$0]++')"
+if [[ -z "$ALL_IDS" ]]; then
+  # Defensive: finals are non-empty here (we passed the empty-check), so
+  # this branch only fires if FINAL_IDS held non-numeric junk.
+  log "collapse-duplicate-notes: no parsable $TYPE note ids (pre_id=$PRE_ID)"
+  exit 0
+fi
+
+ALL_COUNT="$(printf '%s\n' "$ALL_IDS" | wc -l | tr -d ' ')"
+TARGET_ID="$(printf '%s\n' "$ALL_IDS" | head -n1)"
+NEWEST_FINAL_ID="$(printf '%s\n' "$FINAL_IDS" | tail -n1)"
+
+log "collapse-duplicate-notes: replacing $TYPE draft(s) in place — target note id=$TARGET_ID, newest final id=$NEWEST_FINAL_ID ($ALL_COUNT note(s) this run, pre_id=$PRE_ID)"
+
+# Fetch the newest final's body (the body to land on the target id).
+# Bodies contain newlines, so they are fetched via a separate jq query.
+NEWEST_BODY="$(printf '%s' "$NOTES_JSON" | jq -r "${FILTER} | select(.id > ${PRE_ID}) | select(.id == ${NEWEST_FINAL_ID}) | .body" 2> /dev/null)"
+
+# PUT the newest final body onto the target note id (replace in place).
+if [[ -n "$TARGET_ID" && -n "$NEWEST_BODY" ]]; then
+  log "collapse-duplicate-notes: PUT $ENDPOINT/$TARGET_ID (newest final body onto target id)"
+  if [ "$KIND" = "mr" ]; then
+    forge_mr_note_update "$NOTE_IID" "$TARGET_ID" "$NEWEST_BODY" 2> /dev/null \
+      || log "collapse-duplicate-notes: PUT failed for note $TARGET_ID (continuing)"
+  else
+    forge_issue_note_update "$NOTE_IID" "$TARGET_ID" "$NEWEST_BODY" 2> /dev/null \
+      || log "collapse-duplicate-notes: PUT failed for note $TARGET_ID (continuing)"
+  fi
+else
+  log "collapse-duplicate-notes: missing target id or newest body — skipping PUT (target=$TARGET_ID)"
+fi
+
+# DELETE every other matching note id (all drafts + all finals except the
+# target). The target now holds the final body; the rest are redundant.
+printf '%s\n' "$ALL_IDS" | tail -n +2 | while IFS= read -r DEL_ID; do
+  [[ -z "$DEL_ID" ]] && continue
+  log "collapse-duplicate-notes: DELETE $ENDPOINT/$DEL_ID (superseded by target $TARGET_ID)"
+  forge_note_delete "$KIND" "$NOTE_IID" "$DEL_ID" 2> /dev/null \
+    || log "collapse-duplicate-notes: DELETE failed for note $DEL_ID (continuing)"
+done
+
+exit 0

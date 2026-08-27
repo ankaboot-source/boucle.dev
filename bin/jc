@@ -1,0 +1,1782 @@
+#!/usr/bin/env bash
+# bin/jc — boucle's harness entrypoint (S3)
+# Wraps jcode: scrubs secrets, enforces caps, runs agent, asserts side effects.
+# Swapping to another coding agent = editing this one file.
+#
+# Role mapping (boucle role → project-local agent in .jcode/agents/):
+#   triage   → triage    (glm-5.2, analyzes issue)
+#   worker   → worker    (deepseek-v4-flash, implements)
+#   reviewer → reviewer  (glm-5.2, adversarial review)
+#   e2e      → e2e       (deepseek-v4-flash, visual verification)
+#
+# jcode loads AGENTS.md (charter doc, repo root) + .jcode/prompt-overlay.md
+# (role-specific prompt, written per invocation) + .jcode/skills/. The agent's
+# system prompt provides general behavior;
+# the user prompt (built below) adds boucle-specific task instructions.
+#
+# jcode CLI: jcode --provider-profile "$BOUCLE_PROVIDER_PROFILE" --model <model> --tools '*' \
+#   run --quiet "<prompt>"
+# Provider profile is generic (BOUCLE_PROVIDER_PROFILE env, default ollama-cloud).
+# The profile is defined in ~/.jcode/config.toml on the runner host — it holds
+# the base_url, api_key_env, and default_model. CI passes only the profile name,
+# not the API key (the key is referenced by api_key_env in config.toml).
+# jcode has no --agent flag (system prompt via AGENTS.md/prompt-overlay.md),
+# no --variant/--thinking (reasoning effort not controllable per-call),
+# no --log-level (use --quiet to suppress banner).
+# MCP disabled via JCODE_RUN_MCP=0, auto-poke via JCODE_RUN_AUTO_POKE=0,
+# idle timeout via JCODE_STREAM_IDLE_TIMEOUT_SECS=1800.
+# Temperature via JCODE_OPENAI_EXTRA_BODY='{"temperature":0.3}' env per role.
+
+set -euo pipefail
+# Normalize BOUCLE_WORKSPACE IMMEDIATELY: it is used below (agent file
+# discovery, STATE_DIR, ...) before the later default assignment — a job
+# that does not source lib/boucle-ci.sh (inline GitLab jobs) crashed with
+# "BOUCLE_WORKSPACE: unbound variable" (observed on framagit, 2026-08).
+: "${BOUCLE_WORKSPACE:=${CI_PROJECT_DIR:-$(pwd)}}"
+
+# ── Args ──────────────────────────────────────────────────────────────
+ROLE="${1:?usage: bin/jc <role>}"
+ISSUE="${BOUCLE_ISSUE:-}"
+ITERATION="${BOUCLE_ITERATION:-1}"
+DRY_RUN="${BOUCLE_DRY_RUN:-false}"
+# Note: jcode does not support step/turn limits (issue #803).
+# The only bound is wall-clock timeout (set per-job in .gitlab-ci.yml) + iteration cap.
+# JCODE_RUN_AUTO_POKE=0 prevents the auto-poke loop from extending the run.
+
+# ── Map boucle roles to project-local agents (.jcode/agents/*.md) ──
+# jcode has no --variant flag. Reasoning effort IS controllable since jcode
+# v0.73.0 via JCODE_OPENAI_REASONING_EFFORT / config openai_reasoning_effort
+# (values none|minimal|low|medium|high|xhigh|max — deepseek ladder includes
+# max). Wired from the agent frontmatter below (see REASONING_EFFORT parse).
+# Temperature is set via JCODE_OPENAI_EXTRA_BODY env (parsed from agent YAML frontmatter).
+AGENT=""
+MODEL=""
+TEMPERATURE=""
+case "$ROLE" in
+  triage)
+    AGENT="triage"
+    ;;
+  worker)
+    AGENT="worker"
+    ;;
+  reviewer)
+    AGENT="reviewer"
+    ;;
+  e2e)
+    AGENT="e2e"
+    ;;
+  *)
+    echo "Unknown role: $ROLE" >&2
+    exit 1
+    ;;
+esac
+
+# ── Provider profile (generic — not hardcoded to ollama-cloud) ─────────
+# The provider profile name (passed to jcode --provider-profile). CI sets
+# BOUCLE_PROVIDER_PROFILE (default: boucle). The actual provider config
+# (base_url + api_key) is generated at runtime from BOUCLE_LLM_BASE_URL
+# and BOUCLE_LLM_API_KEY env vars — no config file needed on the runner.
+# See ensure_jcode_config() below.
+PROVIDER_PROFILE="${BOUCLE_PROVIDER_PROFILE:-boucle}"
+
+# ── Generate jcode config from env vars (no runner-host config file) ──
+# jcode needs ~/.jcode/config.toml with a [providers.<profile>] section.
+# Instead of shipping a config file on the runner (security risk + provider
+# lock-in), bin/jc generates it at runtime from 2 env vars:
+#   BOUCLE_LLM_BASE_URL  — the OpenAI-compatible API endpoint
+#   BOUCLE_LLM_API_KEY   — the API key (CI secret, masked)
+# If the env vars are not set, fall back to the existing config.toml on the
+# runner (for local dev / backward compat with the ollama-cloud profile).
+ensure_jcode_config() {
+  local config_dir="${JCODE_HOME:-$HOME/.jcode}"
+  local config_file="$config_dir/config.toml"
+  if [ -n "${BOUCLE_LLM_BASE_URL:-}" ] && [ -n "${BOUCLE_LLM_API_KEY:-}" ]; then
+    mkdir -p "$config_dir"
+    # Write the config with the generic profile name. The API key is
+    # referenced via api_key_env so it's never written to disk in plaintext.
+    cat > "$config_file" << TOML
+[provider]
+default_provider = "$PROVIDER_PROFILE"
+
+[providers.$PROVIDER_PROFILE]
+type = "openai-compatible"
+base_url = "$BOUCLE_LLM_BASE_URL"
+auth = "bearer"
+api_key_env = "BOUCLE_LLM_API_KEY"
+default_model = "$MODEL"
+requires_api_key = true
+TOML
+    # When a fallback provider is configured (BOUCLE_FALLBACK_PROVIDER +
+    # BOUCLE_FALLBACK_BASE_URL + BOUCLE_FALLBACK_API_KEY), also write its
+    # profile so the section-5b retry (`jcode --provider-profile
+    # $BOUCLE_FALLBACK_PROVIDER`) resolves. The key stays referenced via
+    # api_key_env — never written to disk in plaintext.
+    if [ -n "${BOUCLE_FALLBACK_PROVIDER:-}" ] \
+      && [ -n "${BOUCLE_FALLBACK_BASE_URL:-}" ] \
+      && [ -n "${BOUCLE_FALLBACK_API_KEY:-}" ]; then
+      cat >> "$config_file" << TOML
+
+[providers.$BOUCLE_FALLBACK_PROVIDER]
+type = "openai-compatible"
+base_url = "$BOUCLE_FALLBACK_BASE_URL"
+auth = "bearer"
+api_key_env = "BOUCLE_FALLBACK_API_KEY"
+default_model = "$FALLBACK_MODEL"
+requires_api_key = true
+TOML
+    fi
+    export JCODE_HOME="$config_dir"
+  elif is_freeride_mode; then
+    mkdir -p "$config_dir"
+    local first_profile="" line name base_url key_env model thinking
+    {
+      echo '[provider]'
+      while IFS='|' read -r name base_url key_env model thinking; do
+        local profile="freeride-$name"
+        [ -z "$first_profile" ] && first_profile="$profile"
+        echo ""
+        echo "[providers.$profile]"
+        echo 'type = "openai-compatible"'
+        echo "base_url = \"$base_url\""
+        echo 'auth = "bearer"'
+        echo "api_key_env = \"$key_env\""
+        echo "default_model = \"$model\""
+        echo 'requires_api_key = true'
+      done < <(freeride_providers "$ROLE")
+      echo ""
+      echo "default_provider = \"$first_profile\""
+    } > "$config_file"
+    export JCODE_HOME="$config_dir"
+  elif [ ! -f "$config_file" ]; then
+    echo "[boucle] ERROR: no jcode config. Set BOUCLE_LLM_BASE_URL + BOUCLE_LLM_API_KEY," >&2
+    echo "[boucle]        or pre-install ~/.jcode/config.toml on the runner." >&2
+    exit 1
+  fi
+  # If config.toml exists (runner-host or generated above), jcode uses it.
+}
+
+# ── Parse model + temperature from agent file YAML frontmatter ────────
+# The agent files (.jcode/agents/<role>.md) have YAML frontmatter:
+#   model: ollama-cloud/glm-5.2
+#   temperature: 0.3
+# jcode needs the model name without the provider prefix (jcode uses
+# --provider-profile for the provider, --model for the model name).
+#
+# Model override: BOUCLE_MODEL_<ROLE> env var takes precedence over the
+# agent file default. This lets CI swap models per-role without editing
+# the agent files (e.g. BOUCLE_MODEL_TRIAGE=glm-5.2-flash for a cheaper
+# triage, BOUCLE_MODEL_WORKER=deepseek-v4-flash for a faster worker).
+# The agent file default is the "good default" — override only when needed.
+AGENT_FILE=""
+for candidate in \
+  "$BOUCLE_WORKSPACE/.jcode/agents/${AGENT}.md" \
+  "$(pwd)/.jcode/agents/${AGENT}.md" \
+  "$(dirname "$0")/../.jcode/agents/${AGENT}.md"; do
+  if [ -f "$candidate" ]; then
+    AGENT_FILE="$candidate"
+    break
+  fi
+done
+if [ -z "$AGENT_FILE" ]; then
+  echo "[boucle] ERROR: agent file not found for role $AGENT" >&2
+  exit 1
+fi
+
+# Extract model from YAML frontmatter (strip provider prefix if present)
+MODEL=$(awk '/^model:/{sub(/^model:[[:space:]]*/,""); gsub(/.*\//,""); print; exit}' "$AGENT_FILE")
+if [ -z "$MODEL" ]; then
+  echo "[boucle] ERROR: no model found in $AGENT_FILE frontmatter" >&2
+  exit 1
+fi
+
+# Override model from env var if set (per-role: BOUCLE_MODEL_TRIAGE, etc.)
+OVERRIDE_VAR="BOUCLE_MODEL_$(echo "$ROLE" | tr '[:lower:]' '[:upper:]')"
+if [ -n "${!OVERRIDE_VAR:-}" ]; then
+  echo "[boucle] model override: $OVERRIDE_VAR=${!OVERRIDE_VAR} (default: $MODEL)" >&2
+  MODEL="${!OVERRIDE_VAR}"
+fi
+
+# ── Freeride mode detection ───────────────────────────────────────────
+FREERIDE_MODE=0
+FREERIDE_PROVIDER_LIST=""
+if is_freeride_mode 2>/dev/null; then
+  FREERIDE_MODE=1
+  FREERIDE_PROVIDER_LIST=$(freeride_providers "$ROLE")
+  FIRST_LINE=$(echo "$FREERIDE_PROVIDER_LIST" | head -1)
+  if [ -n "$FIRST_LINE" ]; then
+    IFS='|' read -r FR_NAME FR_URL FR_KEY_ENV FR_MODEL FR_THINKING <<< "$FIRST_LINE"
+    PROVIDER_PROFILE="freeride-$FR_NAME"
+    MODEL="$FR_MODEL"
+    echo "[boucle:freeride] mode active, primary provider: $FR_NAME ($MODEL)" >&2
+  fi
+fi
+
+# Extract temperature (optional — empty means use provider default)
+TEMPERATURE=$(awk '/^temperature:/{sub(/^temperature:[[:space:]]*/,""); print; exit}' "$AGENT_FILE")
+
+# Extract reasoning effort (optional — empty means jcode's own default, "low").
+# Frontmatter key:
+#   reasoning_effort: max   # none|minimal|low|medium|high|xhigh|max
+# The value lives in the agent file: worker.md/reviewer.md ship model
+# deepseek-v4-flash:0731 with `reasoning_effort: max`. No model sniffing here.
+REASONING_EFFORT=$(awk '/^reasoning_effort:/{sub(/^reasoning_effort:[[:space:]]*/,""); print; exit}' "$AGENT_FILE")
+
+# ── Provider fallback config ───────────────────────────────────────────
+# When the primary provider is down (empty log / no agent activity = the
+# exit-4 condition, LESSONS.yml lesson #29), retry with a fallback provider
+# before the exit-code guard runs. This lets the loop self-recover when
+# ollama-cloud is unavailable (credits exhausted, API down) instead of
+# escalating to a human. Gated by BOUCLE_FALLBACK_PROVIDER (empty = disabled).
+FALLBACK_PROVIDER="${BOUCLE_FALLBACK_PROVIDER:-}"
+FALLBACK_MODEL=""
+if [ -n "$FALLBACK_PROVIDER" ]; then
+  case "$ROLE" in
+    triage) FALLBACK_MODEL="${BOUCLE_FALLBACK_MODEL_TRIAGE:-glm-5.2}" ;;
+    worker) FALLBACK_MODEL="${BOUCLE_FALLBACK_MODEL_WORKER:-deepseek-v4-flash}" ;;
+    reviewer) FALLBACK_MODEL="${BOUCLE_FALLBACK_MODEL_REVIEWER:-glm-5.2}" ;;
+    e2e) FALLBACK_MODEL="${BOUCLE_FALLBACK_MODEL_E2E:-deepseek-v4-flash}" ;;
+  esac
+fi
+FALLBACK_USED=""
+
+# When a fallback provider is configured, wrap each jcode invocation in
+# `timeout` so a hanging primary (API down, credits exhausted) is killed
+# before the 30m job timeout eats the whole run — leaving room for the
+# fallback attempt. Also disable retry loops: retrying a dead provider
+# wastes the timeout budget. Per-role defaults leave ~40% for the fallback
+# and ~20% for overhead (rebase, attachments, CI setup).
+AGENT_TIMEOUT="${BOUCLE_AGENT_TIMEOUT:-}"
+if [ -n "$FALLBACK_PROVIDER" ]; then
+  export BOUCLE_LLM_MAX_RETRIES=0
+  if [ -z "$AGENT_TIMEOUT" ]; then
+    case "$ROLE" in
+      triage) AGENT_TIMEOUT="6m" ;;
+      worker) AGENT_TIMEOUT="12m" ;;
+      reviewer) AGENT_TIMEOUT="12m" ;;
+      e2e) AGENT_TIMEOUT="12m" ;;
+    esac
+  fi
+fi
+
+# ── Paths ──────────────────────────────────────────────────────────────
+# BOUCLE_WORKSPACE is the forge-agnostic workspace root (maps to
+# CI_PROJECT_DIR on GitLab, GITHUB_WORKSPACE on GitHub). Fall back to
+# CI_PROJECT_DIR (GitLab predefined) then pwd for local dev.
+BOUCLE_WORKSPACE="${BOUCLE_WORKSPACE:-${CI_PROJECT_DIR:-$(pwd)}}"
+CI_PROJECT_DIR="$BOUCLE_WORKSPACE" # backward-compat alias for existing refs
+# Per-issue state lives in .boucle-state/ (gitignored). The .boucle/ dir is
+# reserved for the engine submodule in consumer repos — keeping state out of
+# it means `git submodule update` can never clobber in-flight work. The CI
+# worker job seeds state.md/iterations.md and extracts the MR Approach from
+# the same .boucle-state/<issue>/ paths (LESSONS.yml lesson #20: the worker
+# fills the Approach section, the MR description reads it back from here).
+STATE_DIR="$BOUCLE_WORKSPACE/.boucle-state/$ISSUE"
+STATE_FILE="$STATE_DIR/state.md"
+ITERATIONS_FILE="$STATE_DIR/iterations.md"
+
+# Verdict draft file — per-job UNIQUE (LESSONS.yml lesson #58). Agents MUST
+# NOT draft to a fixed path like /tmp/verdict.md: shell executors are
+# shared between jobs AND issues, so a leftover draft from a previous job
+# survives and gets posted as the next agent's verdict (observed on a
+# consumer MR: a foreign keffiyeh PASS was posted twice on the wrong MR).
+# mktemp guarantees uniqueness; fall back to a job/issue-scoped path.
+if command -v mktemp > /dev/null 2>&1; then
+  BOUCLE_VERDICT_FILE="$(mktemp "${TMPDIR:-/tmp}/boucle-verdict.XXXXXX.md" 2> /dev/null || true)"
+fi
+if [ -z "${BOUCLE_VERDICT_FILE:-}" ]; then
+  BOUCLE_VERDICT_FILE="${STATE_DIR}/verdict-${CI_JOB_ID:-local}.md"
+  mkdir -p "$(dirname "$BOUCLE_VERDICT_FILE")"
+fi
+export BOUCLE_VERDICT_FILE
+# jcode has no SQLite DB (run mode is ephemeral), so no DB isolation needed.
+
+# ── Freeride provider catalog ─────────────────────────────────────────
+# Free-tier LLM providers. When BOUCLE_LLM_BASE_URL is not set, boucle
+# uses named provider keys (BOUCLE_GROQ_API_KEY, etc.) instead. Each
+# provider has a known base_url, default models per role, and optional
+# thinking injection. Curated from FreeLLMAPI's V25 final state.
+#
+# Mode priority: Legacy (BOUCLE_LLM_BASE_URL + BOUCLE_LLM_API_KEY) >
+# Freeride (BOUCLE_<PROVIDER>_API_KEY) > No-key (triage posts help).
+freeride_providers() {
+  local role="$1"
+  local catalog=(
+    "nvidia|https://integrate.api.nvidia.com/v1|BOUCLE_NVIDIA_API_KEY|deepseek-ai/deepseek-v4-flash|deepseek-ai/deepseek-v4-pro|high"
+    "groq|https://api.groq.com/openai/v1|BOUCLE_GROQ_API_KEY|qwen/qwen3-32b|openai/gpt-oss-120b|high"
+    "cerebras|https://api.cerebras.ai/v1|BOUCLE_CEREBRAS_API_KEY|gpt-oss-120b|zai-glm-4.7|none"
+    "zhipu|https://open.bigmodel.cn/api/paas/v4|BOUCLE_ZHIPU_API_KEY|glm-4.5-flash|glm-4.7-flash|thinking"
+    "cloudflare|https://api.cloudflare.com/client/v4/accounts/__CF_ACCOUNT__/ai/v1|BOUCLE_CLOUDFLARE_API_KEY|@cf/meta/llama-3.3-70b-instruct-fp8-fast|@cf/zai-org/glm-4.7-flash|none"
+    "huggingface|https://router.huggingface.co/v1|BOUCLE_HUGGINGFACE_API_KEY|deepseek-ai/DeepSeek-V4-Flash|moonshotai/Kimi-K2.6|none"
+    "mistral|https://api.mistral.ai/v1|BOUCLE_MISTRAL_API_KEY|devstral-latest|magistral-medium-latest|none"
+  )
+  local entry
+  for entry in "${catalog[@]}"; do
+    local name base_url key_env code_model reasoning_model thinking key_val model override_var
+    IFS='|' read -r name base_url key_env code_model reasoning_model thinking <<< "$entry"
+    eval "key_val=\${${key_env}:-}"
+    [ -n "$key_val" ] || continue
+    [ "$name" = "cloudflare" ] && [ -z "${BOUCLE_CLOUDFLARE_ACCOUNT_ID:-}" ] && continue
+    base_url="${base_url/__CF_ACCOUNT__/${BOUCLE_CLOUDFLARE_ACCOUNT_ID:-}}"
+    case "$role" in
+      worker|reviewer) model="$code_model" ;;
+      triage|e2e) model="$reasoning_model" ;;
+      *) model="$code_model" ;;
+    esac
+    override_var="BOUCLE_$(echo "$name" | tr '[:lower:]' '[:upper:]')_MODEL"
+    eval "model=\${${override_var}:-$model}"
+    echo "${name}|${base_url}|${key_env}|${model}|${thinking}"
+  done
+}
+
+has_llm_config() {
+  [ -n "${BOUCLE_LLM_BASE_URL:-}" ] && [ -n "${BOUCLE_LLM_API_KEY:-}" ] && return 0
+  [ -n "$(freeride_providers "$ROLE" 2>/dev/null)" ] && return 0
+  return 1
+}
+
+is_freeride_mode() {
+  [ -n "${BOUCLE_LLM_BASE_URL:-}" ] && [ -n "${BOUCLE_LLM_API_KEY:-}" ] && return 1
+  [ -n "$(freeride_providers "$ROLE" 2>/dev/null)" ] && return 0
+  return 1
+}
+
+inject_freeride_thinking() {
+  local thinking="$1"
+  case "$thinking" in
+    high)
+      export JCODE_OPENAI_REASONING_EFFORT=high
+      ;;
+    thinking)
+      local extra="${JCODE_OPENAI_EXTRA_BODY:-}"
+      if [ -n "$extra" ] && echo "$extra" | grep -qv '"thinking"'; then
+        export JCODE_OPENAI_EXTRA_BODY="${extra%,}},{\"thinking\":{\"type\":\"enabled\"}}"
+      else
+        export JCODE_OPENAI_EXTRA_BODY='{"thinking":{"type":"enabled"}}'
+      fi
+      ;;
+    none|*)
+      ;;
+  esac
+}
+
+is_agent_looping() {
+  local log="$1"
+  [ -s "$log" ] || return 1
+  sort "$log" | uniq -c | awk '$1 >= 5 { found=1 } END { exit found?0:1 }'
+}
+
+# ── Generate jcode config from env vars (no runner-host config file) ──
+# Must run AFTER model parsing (uses $MODEL) and BEFORE jcode invocation.
+ensure_jcode_config
+
+# ── jcode environment setup ────────────────────────────────────────────
+# Disable MCP in CI (LESSONS.yml lesson #3: MCP handshake hangs).
+# jcode has MCP support but we disable it for CI reliability.
+export JCODE_RUN_MCP="${JCODE_RUN_MCP:-0}"
+# Disable auto-poke loop (prevents jcode from re-prompting the model when
+# todos are incomplete — extends the run beyond the wall-clock budget).
+export JCODE_RUN_AUTO_POKE="${JCODE_RUN_AUTO_POKE:-0}"
+# Set idle timeout to 600s (default 180s is too short for heavy tasks,
+# but 1800s is too generous for free-tier models that hang — 10 min of
+# silence means the model is stuck, not thinking).
+export JCODE_STREAM_IDLE_TIMEOUT_SECS="${JCODE_STREAM_IDLE_TIMEOUT_SECS:-600}"
+# Disable update check (avoid network call at startup in CI).
+# jcode v0.73.0 renamed JCODE_NO_UPDATE → JCODE_NO_AUTO_UPDATE
+# (crates/jcode-app-core/src/update.rs); export both so consumers pinned
+# to older jcode tags still honor it.
+export JCODE_NO_AUTO_UPDATE="${JCODE_NO_AUTO_UPDATE:-1}"
+export JCODE_NO_UPDATE="${JCODE_NO_UPDATE:-1}"
+# Disable selfdev (avoid repo auto-detection side effects). The env var was
+# removed in jcode v0.73.0 — the --no-selfdev flag on the jcode invocation
+# covers new versions; the export is kept for older pinned ones.
+export JCODE_NO_SELFDEV="${JCODE_NO_SELFDEV:-1}"
+# Disable emoji (avoid ANSI codes in output that break log-scraping).
+export JCODE_NO_EMOJI="${JCODE_NO_EMOJI:-1}"
+
+# Set temperature via JCODE_OPENAI_EXTRA_BODY if the agent file specifies one.
+if [ -n "$TEMPERATURE" ]; then
+  export JCODE_OPENAI_EXTRA_BODY="{\"temperature\":${TEMPERATURE}}"
+fi
+
+# Set reasoning effort via JCODE_OPENAI_REASONING_EFFORT (jcode v0.73.0+).
+# Sent verbatim as reasoning_effort in the OpenAI request body; "max" is part
+# of jcode's deepseek ladder (none|low|medium|high|max).
+if [ -n "$REASONING_EFFORT" ]; then
+  export JCODE_OPENAI_REASONING_EFFORT="$REASONING_EFFORT"
+fi
+
+# In freeride mode, inject thinking per provider — overrides the agent
+# file's reasoning_effort. Free-tier models are less capable; max thinking
+# compensates. Provider-specific: OpenRouter/NVIDIA/Groq use
+# reasoning_effort, Zhipu uses thinking body param.
+if [ "$FREERIDE_MODE" = "1" ] && [ -n "${FR_THINKING:-}" ]; then
+  inject_freeride_thinking "$FR_THINKING"
+fi
+
+# ── Do-Not-Disturb ─────────────────────────────────────────────────────
+# Export BOUCLE_DND_ACTIVE so the triage agent prompt can soften its
+# disposition (prefer READY with documented assumptions over NEEDS-INFO
+# for non-critical ambiguities) during the quiet window. 1 = active, 0 = off.
+# BOUCLE_HOME is exported by every caller (boucle-ci / lib); shellcheck
+# cannot see that, so the reference is flagged SC2154 — disable inline.
+# shellcheck disable=SC2154
+if [ -x "$BOUCLE_HOME/bin/dnd" ] && "$BOUCLE_HOME/bin/dnd" 2> /dev/null; then
+  export BOUCLE_DND_ACTIVE=1
+else
+  export BOUCLE_DND_ACTIVE=0
+fi
+
+# ── Observability (lightweight, non-breaking) ──────────────────────────
+# Emit a single structured [boucle:metrics] line to stderr after each
+# jcode run so we can diagnose runner memory bottlenecks in CI.
+# Measurements are best-effort: any failure falls back to "unavailable"
+# and the script still completes normally.
+START_EPOCH=$(date +%s)
+METRICS_TMP="$(mktemp -t boucle-metrics.XXXXXX 2> /dev/null || echo "")"
+RSS_SAMPLER_TMP="$(mktemp -t boucle-rss.XXXXXX 2> /dev/null || echo "")"
+RSS_SAMPLER_PID=""
+PROMPT_OVERLAY=""
+
+cleanup_metrics() {
+  if [ -n "$RSS_SAMPLER_PID" ] && kill -0 "$RSS_SAMPLER_PID" 2> /dev/null; then
+    kill "$RSS_SAMPLER_PID" 2> /dev/null || true
+    wait "$RSS_SAMPLER_PID" 2> /dev/null || true
+  fi
+  [ -n "$METRICS_TMP" ] && [ -f "$METRICS_TMP" ] && rm -f "$METRICS_TMP" || true
+  [ -n "$RSS_SAMPLER_TMP" ] && [ -f "$RSS_SAMPLER_TMP" ] && rm -f "$RSS_SAMPLER_TMP" || true
+  # Clean up the prompt-overlay.md (restore to empty so the next role
+  # doesn't inherit the previous role's system prompt).
+  if [ -n "$PROMPT_OVERLAY" ] && [ -f "$PROMPT_OVERLAY" ]; then
+    : > "$PROMPT_OVERLAY"
+  fi
+}
+trap cleanup_metrics EXIT
+
+# /usr/bin/time -v gives "Maximum resident set size (kbytes): NNN" in its
+# output file. We prefer it over /proc polling when available.
+HAVE_GNU_TIME=0
+if [ -x /usr/bin/time ]; then
+  HAVE_GNU_TIME=1
+fi
+
+# Start a /proc VmRSS poller as a background subshell. Tracks the max RSS
+# (kB) seen for any "jcode" process and writes it to $RSS_SAMPLER_TMP.
+# Returns 0 if started, 1 if /proc/$$ is unavailable.
+start_rss_sampler() {
+  if [ -z "$RSS_SAMPLER_TMP" ] || [ ! -r /proc/self/status ]; then
+    return 1
+  fi
+  (
+    max_kb=0
+    while true; do
+      pids=$(pgrep -f "jcode.*run" 2> /dev/null || true)
+      cur=0
+      for pid in $pids; do
+        # Aggregate RSS across all matching PIDs (parent + children).
+        rss=$(awk '/^VmRSS:/ {print $2}' "/proc/$pid/status" 2> /dev/null || echo 0)
+        cur=$((cur + rss))
+      done
+      if [ "$cur" -gt "$max_kb" ]; then
+        max_kb=$cur
+        echo "$max_kb" > "$RSS_SAMPLER_TMP"
+      fi
+      sleep 2
+    done
+  ) &
+  RSS_SAMPLER_PID=$!
+  return 0
+}
+
+# Read peak RSS (kB) from whichever source produced data.
+# Echoes a value, or "unavailable".
+get_peak_rss_kb() {
+  if [ "$HAVE_GNU_TIME" = "1" ] && [ -n "$METRICS_TMP" ] && [ -s "$METRICS_TMP" ]; then
+    val=$(awk '/Maximum resident set size/ {print $NF}' "$METRICS_TMP" 2> /dev/null || true)
+    if [ -n "$val" ] && [ "$val" -gt 0 ] 2> /dev/null; then
+      echo "$val"
+      return 0
+    fi
+  fi
+  if [ -n "$RSS_SAMPLER_TMP" ] && [ -s "$RSS_SAMPLER_TMP" ]; then
+    val=$(cat "$RSS_SAMPLER_TMP" 2> /dev/null || true)
+    if [ -n "$val" ] && [ "$val" -gt 0 ] 2> /dev/null; then
+      echo "$val"
+      return 0
+    fi
+  fi
+  echo "unavailable"
+}
+
+# Print the structured metrics line to stderr.
+print_metrics_line() {
+  local elapsed peak_rss
+  elapsed=$(($(date +%s) - START_EPOCH))
+  peak_rss=$(get_peak_rss_kb)
+  echo "[boucle:metrics] role=$ROLE agent=$AGENT iteration=$ITERATION wall_clock=${elapsed}s peak_rss=${peak_rss}kb db_size=n/a" >&2
+}
+
+# Retry wrapper for jcode invocations. Retries transient failures
+# (any non-zero exit except 130=SIGINT) with exponential backoff and
+# ±50% jitter. Caps individual delay at 60s.
+# Usage: run_with_retry -- <cmd> [args...]
+# Sets global AGENT_EXIT to the final attempt's exit code.
+# Always returns 0; caller checks AGENT_EXIT.
+run_with_retry() {
+  [ "${1:-}" = "--" ] && shift
+  local max_retries="${BOUCLE_LLM_MAX_RETRIES:-3}"
+  local base_delay="${BOUCLE_LLM_RETRY_BASE_DELAY:-5}"
+  local total=$((max_retries + 1))
+  local attempt=1
+  local rc=0
+  while [ "$attempt" -le "$total" ]; do
+    # `|| rc=$?` suppresses set -e on failure so we can inspect the code.
+    # When AGENT_TIMEOUT is set (fallback mode), wrap the call so a hanging
+    # provider is killed before the job timeout eats the whole run. Exit
+    # code 124 = timeout killed the process; treat it as a normal failure
+    # (falls through to AGENT_EXIT=$rc, then is_api_down → fallback).
+    if [ -n "$AGENT_TIMEOUT" ]; then
+      timeout "$AGENT_TIMEOUT" "$@" || rc=$?
+    else
+      "$@" || rc=$?
+    fi
+    if [ "$rc" -eq 0 ] || [ "$rc" -eq 130 ]; then
+      AGENT_EXIT=$rc
+      return 0
+    fi
+    if [ "$attempt" -eq "$total" ]; then
+      break
+    fi
+    local delay
+    delay=$(awk -v b="$base_delay" -v a="$((attempt - 1))" 'BEGIN {
+      srand(); d = b * (2 ^ a); if (d > 60) d = 60
+      j = 0.5 + rand(); printf "%d", int(d * j)
+    }')
+    echo "[boucle:retry] attempt ${attempt}/${total} after ${delay}s (exit code: ${rc})" >&2
+    sleep "$delay"
+    attempt=$((attempt + 1))
+  done
+  AGENT_EXIT=$rc
+  return 0
+}
+
+# Detect "API down" condition: empty log OR no agent activity. This is the
+# exit-4 signal (LESSONS.yml lesson #29): jcode exits 1 with no output when
+# the model API is down or out of credits — no tool calls in the log, no
+# model response. Returns 0 (true) if API-down is detected, 1 (false)
+# otherwise. Role-agnostic: looks for any tool call (glab/gh for
+# triage/reviewer/e2e, file/git ops for worker) or a boucle marker.
+# Zero activity = model never responded.
+#
+# jcode has no SQLite DB (run mode is ephemeral), so there is no DB-growth
+# signal. The grep-based heuristic below is the only signal available.
+is_api_down() {
+  local log="$1"
+  [ -s "$log" ] || return 0
+  grep -qiE 'tool_use|function_call|tool_call|glab |gh |read|write|edit|bash|glob|grep|git (add|commit|diff|status|checkout)|\.astro|\.ts|\.css|\.md|src/|public/|<!-- boucle:' "$log" || return 0
+  return 1
+}
+
+# Detect persistent provider quota exhaustion (HTTP 429/402) in the agent
+# log. This is the companion of is_api_down (LESSONS.yml lesson #30): a quota
+# error leaves activity traces (the provider's error message, sometimes tool
+# calls made before the refusal), so is_api_down alone reports "up" and the
+# fallback never triggers — retrying cannot fix an exhausted quota. Returns
+# 0 (true) when a quota error is detected, 1 (false) otherwise. Callers must
+# gate on a non-zero AGENT_EXIT: a successful run may legitimately quote
+# "429"/"quota" in its output (e.g. an issue about quota errors).
+is_quota_exhausted() {
+  local log="$1"
+  [ -s "$log" ] || return 1
+  grep -qiE '\b429\b|\b402\b|too many requests|rate ?limit|usage ?limit|insufficient credits|credits? exhausted|out of credits|payment required|quota (exceeded|reached|limit)|weekly usage limit|exceeded (your|the|monthly|weekly) ?(credit|quota|usage|limit)' "$log" || return 1
+  return 0
+}
+
+# ── Write role-specific prompt-overlay.md ──────────────────────────────
+# jcode loads .jcode/prompt-overlay.md from cwd in addition to AGENTS.md.
+# We write the role-specific agent prompt (body after YAML frontmatter)
+# to this file before each invocation so jcode sees the correct system
+# prompt for the role.
+write_prompt_overlay() {
+  local agent_file="$1"
+  local overlay_dir="$BOUCLE_WORKSPACE/.jcode"
+  local overlay_file="$overlay_dir/prompt-overlay.md"
+  mkdir -p "$overlay_dir"
+  # Extract body after YAML frontmatter (skip lines between --- and ---).
+  awk 'NR==1 && /^---/{f=1;next} f && /^---/{f=0;next} !f' "$agent_file" > "$overlay_file"
+  PROMPT_OVERLAY="$overlay_file"
+}
+
+# ── 1. Session isolation (jcode run is ephemeral by default) ─────────
+
+# ── 2. Scrub deploy secrets before invoking agent ─────────────────────
+SCRUBBED_CF_TOKEN=""
+if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+  SCRUBBED_CF_TOKEN="$CLOUDFLARE_API_TOKEN"
+  unset CLOUDFLARE_API_TOKEN
+fi
+
+# ── 3. Prepare state directory ────────────────────────────────────────
+mkdir -p "$STATE_DIR"
+
+# ── 3a. Load issue attachments (if bin/fetch-issue-attachments ran) ──
+# The fetch script writes .boucle-state/$ISSUE/.attachments.env with
+# BOUCLE_ISSUE_ATTACHMENTS="path1 path2 ...". Empty string = no attachments.
+ATTACHMENTS_ENV="$STATE_DIR/.attachments.env"
+if [ -f "$ATTACHMENTS_ENV" ]; then
+  # shellcheck disable=SC1090
+  source "$ATTACHMENTS_ENV"
+fi
+BOUCLE_ISSUE_ATTACHMENTS="${BOUCLE_ISSUE_ATTACHMENTS:-}"
+
+# ── 3b. Load MR attachments (if bin/fetch-mr-attachments ran) ──
+# The fetch script writes .boucle-state/$ISSUE/.mr-attachments.env with
+# BOUCLE_MR_ATTACHMENTS="path1 path2 ...". Empty string = no MR attachments
+# (first run with no MR, or no uploads in MR comments).
+MR_ATTACHMENTS_ENV="$STATE_DIR/.mr-attachments.env"
+if [ -f "$MR_ATTACHMENTS_ENV" ]; then
+  # shellcheck disable=SC1090
+  source "$MR_ATTACHMENTS_ENV"
+fi
+BOUCLE_MR_ATTACHMENTS="${BOUCLE_MR_ATTACHMENTS:-}"
+
+# ── 3c. Load image descriptions (if bin/describe-images ran) ────────
+# describe-images runs the vision model (minimax-m3) SEPARATELY to describe
+# each image as text, writing to .boucle-state/$ISSUE/.image-descriptions.md.
+# This replaces the old detect-vision-need approach which swapped the worker's
+# entire model to a vision model (minimax-m3) — worse at code and prone to
+# WASM OOM crashes. With describe-images, the worker stays on deepseek-v4-flash
+# (the code model) and gets image context as TEXT in the prompt.
+IMAGE_DESC_FILE="$STATE_DIR/.image-descriptions.md"
+BOUCLE_IMAGE_DESCRIPTIONS=""
+if [ -f "$IMAGE_DESC_FILE" ]; then
+  BOUCLE_IMAGE_DESCRIPTIONS="$(cat "$IMAGE_DESC_FILE")"
+fi
+
+# ── 3c. Strip image paths from attachment lists when descriptions exist ─
+# When bin/describe-images has already described the attachments as TEXT
+# (vision model ran separately), the agent MUST NOT Read the raw image
+# binaries: a text-only model (deepseek-v4-flash) 400s on image input,
+# killing the worker run (consumer 2026-08, issue #55: worker exited 1
+# with "this model does not support image input" and shipped zero commits
+# for 3 iterations). Strip image extensions from the paths exposed to the
+# agent so it can only rely on the descriptions. Non-image attachments
+# (PDF, zip, ...) keep their paths — they are not readable as images and
+# must still be inspectable. The ship-as-asset case is covered by the
+# prompt text below (cp a described image when the issue says "use this
+# file as X").
+if [ -n "$BOUCLE_IMAGE_DESCRIPTIONS" ]; then
+  strip_image_paths() {
+    local paths="${1:-}"
+    local kept=""
+    local p
+    for p in $paths; do
+      case "$p" in
+        *.png | *.jpg | *.jpeg | *.gif | *.webp | *.avif | *.bmp | *.svg)
+          : # described as text above — strip from agent-visible paths
+          ;;
+        *)
+          kept="$kept $p"
+          ;;
+      esac
+    done
+    echo "$kept" | sed 's/^ //'
+  }
+  BOUCLE_ISSUE_ATTACHMENTS=$(strip_image_paths "$BOUCLE_ISSUE_ATTACHMENTS")
+  BOUCLE_MR_ATTACHMENTS=$(strip_image_paths "$BOUCLE_MR_ATTACHMENTS")
+fi
+
+# ── 3c. Load evidence pack (if bin/build-evidence-pack ran) ──────────
+# Charter docs at the base branch + diff brief, used to grade
+# design/architecture/conformance criteria against the base state.
+EVIDENCE_PACK_FILE="$STATE_DIR/.evidence-pack.md"
+BOUCLE_EVIDENCE_PACK=""
+if [ -f "$EVIDENCE_PACK_FILE" ]; then
+  BOUCLE_EVIDENCE_PACK="$(cat "$EVIDENCE_PACK_FILE")"
+fi
+
+# ── 3c. Trim injected note threads (token-cost control) ──────────────
+# The CI stages export the FULL note thread (BOUCLE_ISSUE_NOTES,
+# BOUCLE_REVIEWER_FEEDBACK) with no cap, and build_prompt injects it on
+# every run. The agents are themselves the main writers of those threads
+# (triage posts a structured analysis, the reviewer posts criterion-by-
+# criterion verdicts, CI posts status notes), so iteration N's *output*
+# becomes iteration N+1's *input* — and is re-billed on every later run.
+#
+# Truncation is PER NOTE, never per thread: every note survives, only its
+# tail is elided. Dropping whole notes (even "the oldest") would break the
+# documented invariant that early preservation instructions must stand
+# alongside later amendments (lib/boucle-ci/worker.sh) — that invariant is
+# what stops the worker from re-introducing placeholder content.
+#
+# Notes arrive as "[<author>] <body>" entries whose bodies may span lines;
+# a new note is detected by the "[<author>] " prefix at start of line.
+# BOUCLE_MAX_NOTE_CHARS=0 disables trimming entirely (escape hatch).
+#
+# BOT vs HUMAN caps: the per-note cap applies to every note, but the thread
+# budget (see build_prompt_within_budget) tightens BOT-authored notes only.
+# Human comments AMEND the spec and take precedence over the frozen criteria
+# in state.md (see build_prompt), so they are never squeezed to make room —
+# a truncated human amendment is a spec regression, not a saving.
+# BOUCLE_BOT_NOTE_CHARS is set by the budget enforcer; it defaults to the
+# same value as BOUCLE_MAX_NOTE_CHARS, so nothing changes unless a ceiling
+# is configured AND exceeded.
+# ── Anti-anchored re-review (#43) ─────────────────────────────────────
+# On iteration N the reviewer reads its OWN iteration N-1 verdict. Two
+# failure modes follow, pulling in opposite directions:
+#   - ratification: the previous reasoning gets re-endorsed and a regression
+#     introduced BY the fix slips through unexamined;
+#   - tunnel vision: only the previously failed criteria are re-checked.
+#
+# BOUCLE_REVIEW_ANCHORING controls how much of a prior verdict survives:
+#   full          — everything (default, unchanged behaviour)
+#   criteria-only — the VERDICT line + unmet "- [ ]" criteria, reasoning
+#                   stripped: what still has to pass, not why it failed
+#   none          — verdicts replaced by a placeholder
+#
+# Two things are NEVER filtered:
+#   - human comments: they AMEND the spec and outrank the frozen criteria in
+#     state.md. A withheld human amendment is a spec regression.
+#   - bot notes that are not verdicts (CI status notes): they carry loop
+#     context, not review reasoning.
+#
+# Reviewer-only. The WORKER needs the full reasoning to act on a FAIL, so
+# build_prompt applies this to the reviewer branch alone.
+filter_mr_discussion() {
+  local text="$1"
+  local mode="${BOUCLE_REVIEW_ANCHORING:-full}"
+  if [ -z "$text" ] || [ "$mode" = "full" ]; then
+    printf '%s' "$text"
+    return 0
+  fi
+  case "$mode" in
+    criteria-only | none) ;;
+    *)
+      echo "WARN: unknown BOUCLE_REVIEW_ANCHORING='$mode' — falling back to 'full'." >&2
+      printf '%s' "$text"
+      return 0
+      ;;
+  esac
+  printf '%s\n' "$text" | awk -v mode="$mode" -v bot="${BOUCLE_BOT_USERNAME:-}" '
+    # A note is a verdict only if the boucle bot wrote it AND it carries a
+    # verdict marker. Everything else passes through untouched.
+    function is_verdict() { return (bot != "" && author == bot && seen_verdict) }
+    # Drop the rationale that follows the criterion. index() is byte-literal:
+    # the separator is an em dash (multi-byte UTF-8) and a bracket expression
+    # would mis-parse it under mawk.
+    function strip_reason(line,   p) {
+      p = index(line, " — ")
+      if (p > 0) return substr(line, 1, p - 1)
+      p = index(line, " -- ")
+      if (p > 0) return substr(line, 1, p - 1)
+      return line
+    }
+    # Author prefix alone, so the thread keeps its shape without carrying
+    # any of the withheld verdict.
+    function header_only(line,   p) {
+      p = index(line, "] ")
+      if (p > 0) return substr(line, 1, p)
+      return line
+    }
+    function flush(   i, line) {
+      if (n == 0) return
+      if (!is_verdict()) {
+        for (i = 1; i <= n; i++) print buf[i]
+      } else if (mode == "none") {
+        print header_only(buf[1]) " (previous reviewer verdict withheld — BOUCLE_REVIEW_ANCHORING=none)"
+      } else {
+        print header_only(buf[1])
+        for (i = 1; i <= n; i++) {
+          line = buf[i]
+          if (line ~ /^VERDICT:/) { print line; continue }
+          # Unmet criteria only, rationale removed: the reviewer is told what
+          # must still pass, not why it failed — that is the anchor.
+          if (line ~ /^- \[ \]/) print strip_reason(line)
+        }
+      }
+      n = 0; seen_verdict = 0
+    }
+    /^\[[^]]+\] / {
+      flush()
+      author = $0
+      sub(/^\[/, "", author)
+      sub(/\].*$/, "", author)
+      n = 1; buf[1] = $0
+      if ($0 ~ /boucle:verdict|VERDICT:/) seen_verdict = 1
+      next
+    }
+    {
+      if (n == 0) { n = 1; buf[1] = $0 } else { n++; buf[n] = $0 }
+      if ($0 ~ /boucle:verdict|VERDICT:/) seen_verdict = 1
+    }
+    END { flush() }
+  '
+}
+
+trim_notes() {
+  local label="$1" text="$2"
+  local max="${BOUCLE_MAX_NOTE_CHARS:-1500}"
+  if [ -z "$text" ]; then
+    return 0
+  fi
+  # Non-numeric or <= 0 → pass through untouched.
+  case "$max" in
+    '' | *[!0-9]*) max=0 ;;
+  esac
+  if [ "$max" -le 0 ]; then
+    printf '%s' "$text"
+    return 0
+  fi
+  local bot_max="${BOUCLE_BOT_NOTE_CHARS:-$max}"
+  case "$bot_max" in
+    '' | *[!0-9]*) bot_max="$max" ;;
+  esac
+  # Never let the bot cap exceed the global cap — it only ever tightens.
+  [ "$bot_max" -gt "$max" ] && bot_max="$max"
+  local bot="${BOUCLE_BOT_USERNAME:-}"
+  local out
+  out=$(printf '%s\n' "$text" | awk -v max="$max" -v bot_max="$bot_max" -v bot="$bot" '
+    # Cap for the note currently buffered: the tightened bot cap when the
+    # note was authored by the boucle bot, the global cap otherwise.
+    function cap() { return (bot != "" && author == bot) ? bot_max : max }
+    function flush(   n, c) {
+      if (buf == "") return
+      c = cap()
+      n = length(buf)
+      if (c > 0 && n > c) {
+        printf "%s\n[... %d chars elided by boucle (cap=%d) ...]\n", substr(buf, 1, c), n - c, c
+      } else {
+        printf "%s\n", buf
+      }
+      buf = ""
+    }
+    /^\[[^]]+\] / {
+      flush()
+      buf = $0
+      author = $0
+      sub(/^\[/, "", author)
+      sub(/\].*$/, "", author)
+      next
+    }
+    { buf = (buf == "" ? $0 : buf "\n" $0) }
+    END { flush() }
+  ')
+  # Report on stderr (stdout is the prompt payload). Mirrors the existing
+  # [boucle:metrics] channel so the before/after is measurable in CI logs.
+  # Silenced during the budget enforcer's trial passes so the log carries one
+  # report per section, not one per ladder rung.
+  if [ -z "${BOUCLE_TRIM_QUIET:-}" ]; then
+    echo "[boucle:prompt] $label chars_before=${#text} chars_after=${#out} max_note_chars=$max bot_note_chars=$bot_max" >&2
+  fi
+  printf '%s' "$out"
+}
+
+# ── 4. Build the agent prompt (issue-specific context only) ──────────
+# Role instructions live in .jcode/agents/<role>.md (system prompt,
+# loaded via .jcode/prompt-overlay.md).
+# The user prompt below only adds issue-specific context to avoid duplication.
+build_prompt() {
+  local role="$1"
+  local prompt=""
+
+  case "$role" in
+    triage)
+      # Inject the issue body (fetched by CI as BOUCLE_ISSUE_BODY) so the
+      # agent does not waste steps calling glab issue view / gh issue view
+      # (the triage model burned 4+ steps on failed fetches before posting).
+      local body="${BOUCLE_ISSUE_BODY:-}"
+      # Inject the prior discussion (fetched by CI as BOUCLE_ISSUE_NOTES) so
+      # the agent sees previous triage Questions AND the author's answers.
+      # Without this, every re-triage re-asks questions the author already
+      # answered (issue #27: 6 repeated triage notes on a consumer repo).
+      # Trimmed per note (see trim_notes): prior triage analyses are the
+      # bulkiest entries in this thread and are re-billed on every re-triage.
+      local notes
+      notes="$(trim_notes issue_notes "${BOUCLE_ISSUE_NOTES:-}")"
+      if [ -n "$body" ]; then
+        prompt="Analyze issue #${ISSUE}.
+
+Issue body (already fetched — do NOT call glab issue view or gh issue view):
+---
+${body}
+---
+"
+        if [ -n "$notes" ]; then
+          prompt="${prompt}
+Prior discussion (issue notes, oldest first — do NOT re-ask anything already answered here):
+---
+${notes}
+---
+"
+        fi
+        prompt="${prompt}
+Post your analysis as a comment with the boucle:triage marker. Use: bin/forge-note issue ${ISSUE} --message \"\$(cat <<'EOF' ... EOF)\""
+      else
+        prompt="Analyze issue #${ISSUE}. Post your analysis as a comment with the boucle:triage marker."
+      fi
+      ;;
+    worker)
+      # Inject the issue body (fetched by CI as BOUCLE_ISSUE_BODY) so the
+      # worker has the instructed content (URLs, citations, texts) at hand
+      # and does not invent placeholders or rewrite the instructed texts.
+      local body="${BOUCLE_ISSUE_BODY:-}"
+      # Inject the full issue notes (fetched by CI as BOUCLE_ISSUE_NOTES) so
+      # the worker sees the FULL discussion history — including early
+      # preservation instructions that the latest amendments must NOT
+      # override. trim_notes keeps EVERY note (only tails are elided), so
+      # those early instructions still reach the worker.
+      local notes
+      notes="$(trim_notes issue_notes "${BOUCLE_ISSUE_NOTES:-}")"
+      # Inject reviewer verdicts + human MR comments (fetched by CI as
+      # BOUCLE_REVIEWER_FEEDBACK) so re-runs after a reviewer FAIL or a human
+      # MR comment actually address the feedback. Empty on the first run.
+      local feedback
+      feedback="$(trim_notes reviewer_feedback "${BOUCLE_REVIEWER_FEEDBACK:-}")"
+      # Fail-loud guard for the MR feedback channel (LESSONS.yml lesson #54):
+      # a port/sync can silently drop the CI-side lookup while leaving the
+      # orphaned BOUCLE_MR_IID export (observed: jcode port f830644 — workers
+      # re-ran blind to human MR comments for 3 days). On any RE-RUN
+      # (iteration > 1) an empty raw feedback channel is suspicious: warn
+      # loudly and fall back to self-fetch instructions instead of letting
+      # the agent assume there is no feedback.
+      if [ -z "${BOUCLE_REVIEWER_FEEDBACK:-}" ] && [ "${BOUCLE_ITERATION:-1}" -gt 1 ]; then
+        echo "[boucle:jc] WARNING: worker re-run (iteration ${BOUCLE_ITERATION}) with EMPTY MR feedback — the feedback channel may be broken. The worker will be told to fetch the MR discussion itself." >&2
+        feedback="[boucle:guard] No MR feedback was injected on this re-run, but prior runs exist (iteration ${BOUCLE_ITERATION}). Do NOT assume there is no feedback: fetch the MR notes for source branch boucle/${ISSUE} yourself (glab mr note list -R \${CI_PROJECT_PATH} -n 100 or bin/forge-note) and address every actionable human comment and reviewer verdict before claiming done."
+      fi
+      prompt="Implement issue #${ISSUE}. Read state.md first. Commit your changes with [skip ci].
+
+Preserve instructed content: the issue body below contains the EXACT content the human instructed (URLs, citations, texts, images). You MUST use them verbatim. DO NOT generate placeholders, DO NOT rewrite the instructed texts, DO NOT substitute URLs. If a field is missing from the issue, fetch the issue body via \`bin/forge-note issue ${ISSUE}\` or the forge CLI rather than inventing. Recent amendments (in the feedback section below) AMEND the spec — they do NOT replace earlier preservation instructions. Conciliate them.
+"
+      if [ -n "$body" ]; then
+        prompt="${prompt}
+Issue body (already fetched — do NOT call the forge CLI to re-fetch):
+---
+${body}
+---
+"
+      else
+        prompt="${prompt}
+Issue body: NOT available in the prompt — fetch it via \`bin/forge-note issue ${ISSUE}\` or the forge CLI before doing anything else.
+"
+      fi
+      if [ -n "$notes" ]; then
+        prompt="${prompt}
+Prior issue discussion (issue notes, oldest first — early preservation instructions STAND alongside later amendments):
+---
+${notes}
+---
+"
+      fi
+      if [ -n "$feedback" ]; then
+        prompt="${prompt}
+Prior feedback on the MR (reviewer verdicts + human comments, oldest first — you MUST address every actionable item before claiming done):
+---
+${feedback}
+---
+"
+      fi
+      if [ -n "${BOUCLE_BUILD_FEEDBACK:-}" ]; then
+        prompt="${prompt}
+Build error from the previous iteration (the build failed — fix the root cause before claiming done):
+---
+${BOUCLE_BUILD_FEEDBACK}
+---
+"
+      fi
+      if [ -n "${BOUCLE_IMAGE_DESCRIPTIONS:-}" ]; then
+        prompt="${prompt}
+Image descriptions (generated by the vision model from attachments — use these as context for implementing the feature):
+---
+${BOUCLE_IMAGE_DESCRIPTIONS}
+---
+"
+      fi
+      if [ -n "${BOUCLE_SIBLINGS:-}" ] && [ "${BOUCLE_SIBLINGS}" != "[]" ]; then
+        prompt="${prompt}
+Sibling sub-issues (context only — the dispatch gate already ensured any dependency is closed before you started; do NOT wait for or block on these):
+---
+${BOUCLE_SIBLINGS}
+---
+"
+      fi
+      if [ -n "${BOUCLE_CONFLICT_FEEDBACK:-}" ]; then
+        prompt="${prompt}
+MERGE CONFLICT from a previous iteration: the branch conflicted when rebasing onto the default branch. The default branch has moved on (often a sibling issue was merged). **You are now INSIDE the conflicted rebase** — the working tree holds the conflict markers and both sides' content. Resolve it:
+- Inspect \`git status\` (unmerged files) and \`git diff\` — read BOTH sides before touching anything.
+- For each conflicted file, keep the semantically correct content per the issue body + human amendments. The default branch's version is the base: take it and re-apply the issue's intent on top — do NOT revert the merged work.
+- If the issue's goal is now ALREADY covered by the default branch (same feature, different design), take the default branch's side and say so explicitly in your final message — do NOT duplicate.
+- After resolving all markers: \`git add\` the resolved files. You MAY then complete the rebase yourself (\`GIT_EDITOR=true git rebase --continue\`, and \`git rebase --skip\` when a resolution empties a commit) — later commits of the rebase may hit NEW conflicts, and resolving them with the same judgment is better than leaving a cascade to the job. Do NOT push, do NOT run the forge CLI — the loop takes over after you exit.
+- Be DECISIVE and fast — you have a bounded time budget (a few minutes): inspect \`git status\` + \`git diff\`, pick the semantically correct side (the default branch's version when in doubt — supersession is the common case), resolve ALL markers, complete the rebase, and stop. Do not over-analyze or re-verify repeatedly.
+- If you cannot resolve sensibly, leave the markers and say why — the job falls back to the bounded retry path.
+"
+      fi
+      # Lesson candidate from the reviewer (escalation-only path): the
+      # reviewer emits a lesson candidate on stdout at MAX_ITERATION, and
+      # reviewer.sh scrapes it to .boucle-state/<issue>/lesson-candidate.yml.
+      # Inject it into the worker prompt so the worker validates + commits it.
+      # The worker runs bin/check-lessons on a temp merged LESSONS.yml: if it
+      # passes, commit the entry in the same MR; if it fails, reject motivated
+      # on stdout. Never silently drop the candidate.
+      LESSON_CANDIDATE_FILE="$STATE_DIR/lesson-candidate.yml"
+      if [ -f "$LESSON_CANDIDATE_FILE" ]; then
+        LESSON_CANDIDATE_CONTENT=$(cat "$LESSON_CANDIDATE_FILE" 2> /dev/null || echo "")
+        if [ -n "$LESSON_CANDIDATE_CONTENT" ]; then
+          prompt="${prompt}
+Lesson candidate from the reviewer (emitted at escalation — the loop could not solve this issue automatically). The reviewer believes the failure pattern is a CLASS of mistake worth a LESSONS.yml entry. Validate it:
+
+1. Read the candidate below.
+2. Run the four-point admission test from AGENTS.md (class-not-instance, recurrence-without-the-doc, stable, not-already-covered). State on stdout which tests it passes/fails.
+3. Merge the candidate into a COPY of LESSONS.yml and run \`bin/check-lessons <copy>\`. If it passes (no format errors, no duplicate > 0.6 overlap), commit the entry to LESSONS.yml in the same MR as your code changes. Use the next available number (or reuse a pruned/merged gap if the class is identical).
+4. If it fails the admission test OR bin/check-lessons rejects it, do NOT commit it. State on stdout why (which test failed, or the check-lessons error). Remove the candidate file (\`rm .boucle-state/\${BOUCLE_ISSUE}/lesson-candidate.yml\`).
+5. Never silently drop the candidate — always say what you did with it.
+
+---
+${LESSON_CANDIDATE_CONTENT}
+---
+"
+        fi
+      fi
+      ;;
+    reviewer)
+      # Inject the issue body (fetched by CI as BOUCLE_ISSUE_BODY) so the
+      # reviewer can verify the MR content (texts, video URLs, citations)
+      # matches what the issue actually instructed.
+      local body="${BOUCLE_ISSUE_BODY:-}"
+      # Inject the same MR discussion the worker received (fetched by CI as
+      # BOUCLE_REVIEWER_FEEDBACK). Human comments MUST take precedence over
+      # state.md. Trimmed per note: this thread carries the reviewer's own
+      # prior verdicts, the single bulkiest re-billed block in the loop.
+      #
+      # Anchoring filter runs BEFORE trimming (#43): reducing a verdict to
+      # its unmet criteria removes far more than a tail elision would, and
+      # trimming a already-reduced note keeps the per-note cap meaningful.
+      # Human comments pass through both stages untouched.
+      local feedback
+      feedback="$(filter_mr_discussion "${BOUCLE_REVIEWER_FEEDBACK:-}")"
+      feedback="$(trim_notes reviewer_feedback "$feedback")"
+      # Fail-loud guard for the MR feedback channel (LESSONS.yml lesson #54):
+      # a port/sync can silently drop the CI-side lookup while leaving the
+      # orphaned BOUCLE_MR_IID export. Check the RAW env, not the filtered
+      # value: anchoring (BOUCLE_REVIEW_ANCHORING) deliberately withholds
+      # verdicts downstream, but the raw channel must still be populated.
+      # On a re-run an empty raw channel is a red flag — warn loudly and fall
+      # back to self-fetch instructions instead of grading against the
+      # frozen spec alone (which is exactly how unaddressed human amendments
+      # slip a PASS).
+      if [ -z "${BOUCLE_REVIEWER_FEEDBACK:-}" ] && [ "${BOUCLE_ITERATION:-1}" -gt 1 ]; then
+        echo "[boucle:jc] WARNING: reviewer re-run (iteration ${BOUCLE_ITERATION}) with EMPTY MR feedback — the feedback channel may be broken. The reviewer will be told to fetch the MR discussion itself." >&2
+        feedback="[boucle:guard] No MR feedback was injected on this re-run, but prior runs exist (iteration ${BOUCLE_ITERATION}). Do NOT assume there is no feedback: fetch the MR notes for source branch boucle/${ISSUE} yourself (glab mr note list -R \${CI_PROJECT_PATH} -n 100 or bin/forge-note) and verify EVERY human amendment is addressed before PASS."
+      fi
+      prompt="Review the MR for issue #${ISSUE}. Test the deployed preview at \$BOUCLE_PREVIEW_URL. Post your verdict with the boucle:verdict marker.
+
+Verify content fidelity: the issue body below is the original spec. Check that the MR preserves the instructed content (URLs, citations, texts) verbatim — no placeholders, no rewrites, no substitutions. A MR that degrades instructed content is a FAIL even if it satisfies the latest amendments.
+"
+      # Diff review mode (no preview URL — e.g. GitLab Pages declarative
+      # mode with an empty BOUCLE_DEPLOY_CMD): the CI injected the MR diff
+      # and check suites into BOUCLE_MR_DIFF / BOUCLE_MR_CHECKS. The
+      # reviewer must grade against those instead of a deployed preview.
+      # Screenshot mode: the worker captured screenshots of impacted pages
+      # and describe-images --criteria generated per-criterion verdicts
+      # (MET/NOT MET/UNCLEAR) in .image-descriptions.md. The reviewer
+      # grades against those text descriptions, not a deployed URL.
+      if [ -z "${BOUCLE_PREVIEW_URL:-}" ]; then
+        if [ "$(boucle_review_mode)" = "screenshot" ]; then
+          prompt="${prompt}
+SCREENSHOT review mode (no deployed preview URL). The worker captured screenshots of the impacted pages and uploaded them to the MR. The vision model has reviewed each screenshot against the acceptance criteria — its per-criterion verdicts (MET/NOT MET/UNCLEAR with justifications) are in the image descriptions section below. Grade each acceptance criterion against those descriptions. Also review the MR diff (\$BOUCLE_MR_DIFF) for code quality. Note in your verdict that this was a screenshot review (no deployed preview).
+"
+        else
+          prompt="${prompt}
+NO preview URL is available (diff review mode). Grade the MR against \$BOUCLE_MR_DIFF (the MR diff, injected by CI) and \$BOUCLE_MR_CHECKS (the check suites). Verify each criterion against the code in the diff, not a deployed site. Note in your verdict that this was a diff review (no preview deploy).
+"
+        fi
+      fi
+      if [ -n "${BOUCLE_EVIDENCE_PACK:-}" ]; then
+        prompt="${prompt}
+Evidence pack (charter docs at the base branch + diff brief, produced by bin/build-evidence-pack — grade design/architecture/conformance criteria AGAINST these excerpts; apply the dual-delta rule when the MR itself modifies a charter):
+---
+${BOUCLE_EVIDENCE_PACK}
+---
+"
+      fi
+      if [ -n "$body" ]; then
+        prompt="${prompt}
+Issue body (original spec — verify the MR matches it):
+---
+${body}
+---
+"
+      else
+        prompt="${prompt}
+Issue body: NOT available — fetch it via \`bin/forge-note issue ${ISSUE}\` or the forge CLI if you need to verify content fidelity.
+"
+      fi
+      # Inject issue notes (human amendments posted as ISSUE comments, not MR
+      # comments). Without these, the reviewer misses amendments the human
+      # posted on the issue and PASSes a MR that ignores them (framagit
+      # 2026-08, MR !61: "embed Instagram" was an issue note; the worker
+      # marked it SUPPRIMÉE and the reviewer PASSed because it never saw the
+      # issue note). Mirrors the worker's issue-notes injection.
+      local issue_notes
+      issue_notes="$(trim_notes issue_notes "${BOUCLE_ISSUE_NOTES:-}")"
+      if [ -n "$issue_notes" ]; then
+        prompt="${prompt}
+Prior issue discussion (issue notes, oldest first — human comments here AMEND the spec just like MR comments. You MUST verify every human amendment in BOTH this section AND the MR discussion below is addressed in the deployed code):
+---
+${issue_notes}
+---
+"
+      fi
+      if [ -n "$feedback" ]; then
+        prompt="${prompt}
+Prior MR discussion (reviewer verdicts + human comments, oldest first — human comments AMEND the spec and take precedence over the frozen acceptance criteria in state.md). You MUST enumerate every human amendment below and verify it is addressed in the deployed code; any human amendment NOT addressed is a FAIL, even if the original criteria are satisfied:
+---
+${feedback}
+---
+"
+      fi
+      if [ -n "${BOUCLE_IMAGE_DESCRIPTIONS:-}" ]; then
+        prompt="${prompt}
+Image descriptions (generated by the vision model from attachments — use these to verify the MR matches the human's visual intent):
+---
+${BOUCLE_IMAGE_DESCRIPTIONS}
+---
+"
+      fi
+      # Lesson candidate emission at escalation (reviewer-only):
+      # At MAX_ITERATION, tell the reviewer to emit a lesson candidate on
+      # stdout if the failure pattern passes the four-point admission test.
+      # CI scrapes it to .boucle-state/<issue>/lesson-candidate.yml. Never
+      # in the verdict comment — the candidate is machine food.
+      if [ "${BOUCLE_ITERATION:-1}" -ge "${BOUCLE_MAX_ITERATIONS:-5}" ]; then
+        prompt="${prompt}
+
+**Lesson candidate (escalation):** this is the final iteration (BOUCLE_ITERATION=\${BOUCLE_ITERATION} >= BOUCLE_MAX_ITERATIONS=\${BOUCLE_MAX_ITERATIONS}). The loop is about to escalate to boucle:human. If the failure pattern you observed is a CLASS of mistake (not a one-off) that would recur without a lesson, emit a lesson candidate on STDOUT (not in the verdict comment). Print this block:
+
+## Lesson candidate
+title: <short label>
+❌: DO NOT <anti-pattern>
+✅: DO <correct pattern>
+admission:
+  - class-not-instance: <why>
+  - recurrence: <why>
+  - stable: <why>
+  - not-already-covered: <why>
+## End lesson candidate
+
+Apply the four-point admission test from AGENTS.md. If no candidate passes, emit nothing — silence is honest. Post your verdict FIRST, then emit the candidate."
+      fi
+      ;;
+    e2e)
+      prompt="Verify issue #${ISSUE} on the live URL \$BOUCLE_LIVE_URL. Post your verdict with the boucle:verdict marker."
+      ;;
+    *)
+      echo "Unknown role: $role" >&2
+      exit 1
+      ;;
+  esac
+
+  # Verdict draft hygiene (LESSONS.yml lesson #58): a fixed /tmp path on a
+  # shared executor serves a PREVIOUS job's leftover draft, which the
+  # agent posts as its own verdict. Remind the verdict roles of the
+  # per-job unique path exported above and of the direct-post fallback.
+  if [ "$role" = "reviewer" ] || [ "$role" = "e2e" ]; then
+    prompt="${prompt}
+Draft file hygiene: if you write your draft verdict to a file, use \`\$BOUCLE_VERDICT_FILE\` (exported by bin/jc — unique per job). NEVER use a fixed path like /tmp/verdict.md: executors are shared and a leftover file from a previous job gets posted as YOUR verdict. Write the file with your Write tool (bash redirection to a variable target is blocked by the runtime guard) and read it back immediately before posting. Prefer posting directly: bin/forge-note with --message (short) or --message-stdin (long). If a post fails or the file is missing/wrong, re-post with --message — never leave the run without a verdict."
+  fi
+
+  echo "$prompt"
+
+  # Append attachment paths (if any) so the agent knows how to handle them.
+  # bin/fetch-issue-attachments downloads issue uploads to
+  # .boucle-state/$ISSUE/attachments/ (images, PDFs, archives, etc.).
+  # Attachments can be source assets to ship (logos, photos) OR mockups/
+  # screenshots for context. Decide based on the issue body + comment intent.
+  # Do NOT `Read` binary files (PNG/ZIP) — the Read tool returns garbage on
+  # binaries for text-only models. Use `file <path>` for dimensions/metadata.
+  if [ -n "${BOUCLE_ISSUE_ATTACHMENTS:-}" ]; then
+    echo ""
+    echo "Issue attachments are available at these local paths:"
+    echo "$BOUCLE_ISSUE_ATTACHMENTS"
+    echo ""
+    echo "These may be source assets to ship in the build (logos, photos) OR mockups/screenshots for context. Decide based on the issue body and comment intent. For each file:"
+    echo "- Run \`file <path>\` to get its type and dimensions (e.g. PNG 52x100 = vertical image)."
+    echo "- CRITICAL: Do NOT use the Read tool on ANY binary file (images/videos/PDFs/ZIPs/fonts). You are a TEXT-ONLY model: reading a binary makes the API respond '400: this model does not support image input' and the ENTIRE worker run CRASHES with zero commits — the iteration is wasted and the issue stalls. Use \`file\` for metadata, never \`Read\` for content."
+    echo "- If it's a source asset (logo, photo, visual to display), copy it into the build tree (e.g. \`cp <path> public/<name>\`) and reference it in your code."
+    echo "- If it's a mockup/screenshot, use it as context for the implementation (dimensions, layout hints)."
+  fi
+
+  # Append MR attachment paths (if any) so the agent knows how to handle them.
+  # bin/fetch-mr-attachments downloads MR-note uploads to
+  # .boucle-state/$ISSUE/mr-attachments/ (screenshots, mockups, assets from reviewer/human).
+  # Same dual nature as issue attachments — decide based on the comment intent.
+  if [ -n "${BOUCLE_MR_ATTACHMENTS:-}" ]; then
+    echo ""
+    echo "MR comment attachments are available at these local paths:"
+    echo "$BOUCLE_MR_ATTACHMENTS"
+    echo ""
+    echo "These may be mockups/screenshots for context OR source assets to ship. Decide based on the comment intent. For each file:"
+    echo "- Run \`file <path>\` to get its type and dimensions (e.g. PNG 52x100 = vertical image)."
+    echo "- CRITICAL: Do NOT use the Read tool on ANY binary file (images/videos/PDFs/ZIPs/fonts). You are a TEXT-ONLY model: reading a binary makes the API respond '400: this model does not support image input' and the ENTIRE worker run CRASHES with zero commits — the iteration is wasted and the issue stalls. Use \`file\` for metadata, never \`Read\` for content."
+    echo "- If the human explicitly says to use the file as an asset (e.g. 'use this image', 'with the attached visual', 'séparation visuelle avec le visuel ci-joint'), copy it into the build tree (e.g. \`cp <path> public/<name>\`) and reference it in your code."
+    echo "- If it's a mockup/screenshot, use it as context for addressing the feedback (dimensions, layout hints)."
+  fi
+}
+
+# ── 4b. Thread-level prompt budget + measurement ──────────────────────
+# trim_notes caps each NOTE; it does not cap the assembled PROMPT. A note
+# thread grows monotonically — triage analysis, per-criterion verdicts, CI
+# status notes, human comments — so the prompt grows unbounded even with a
+# per-note cap: 40 notes at 1500 chars is 60k chars passing untouched.
+# Context rot does not raise an error; the agent silently misses a file,
+# which surfaces one stage later as a reviewer FAIL and burns an iteration.
+#
+# BOUCLE_MAX_PROMPT_CHARS defaults to 0 (disabled): measure first, then set
+# a ceiling informed by the [boucle:prompt] total line below. Degradation
+# tightens BOT-authored notes only, in ladder order — human comments amend
+# the spec and are never squeezed, and no note is ever dropped outright.
+BOT_NOTE_LADDER="750 300 120"
+
+# Estimated tokens from characters. Deliberately crude (~4 chars/token):
+# the number that matters is the trend across runs, not a billing figure.
+# Real token counts land in [boucle:metrics] once the provider reports them.
+report_prompt_size() {
+  local role="$1" text="$2"
+  local body="${BOUCLE_ISSUE_BODY:-}"
+  local notes="${BOUCLE_ISSUE_NOTES:-}"
+  local feedback="${BOUCLE_REVIEWER_FEEDBACK:-}"
+  local total=${#text}
+  local warn="${BOUCLE_PROMPT_WARN_CHARS:-0}"
+  case "$warn" in
+    '' | *[!0-9]*) warn=0 ;;
+  esac
+  echo "[boucle:prompt] total role=$role iteration=$ITERATION total_chars=$total est_tokens=$((total / 4)) body_chars=${#body} notes_chars_raw=${#notes} feedback_chars_raw=${#feedback} ceiling=${BOUCLE_MAX_PROMPT_CHARS:-0}" >&2
+  if [ "$warn" -gt 0 ] && [ "$total" -gt "$warn" ]; then
+    echo "WARN: assembled prompt is $total chars (BOUCLE_PROMPT_WARN_CHARS=$warn). Context degrades well before any hard limit — consider setting BOUCLE_MAX_PROMPT_CHARS." >&2
+  fi
+}
+
+# Build the prompt, tightening bot-note trimming until it fits the ceiling.
+# Trial passes run silently (BOUCLE_TRIM_QUIET) so the job log carries one
+# report per section rather than one per ladder rung; the winning cap is
+# then rebuilt with reporting restored.
+build_prompt_within_budget() {
+  local role="$1"
+  local ceiling="${BOUCLE_MAX_PROMPT_CHARS:-0}"
+  case "$ceiling" in
+    '' | *[!0-9]*) ceiling=0 ;;
+  esac
+
+  if [ "$ceiling" -le 0 ]; then
+    build_prompt "$role"
+    return 0
+  fi
+
+  local p rung chosen=""
+  export BOUCLE_TRIM_QUIET=1
+  p=$(build_prompt "$role")
+  if [ "${#p}" -gt "$ceiling" ]; then
+    for rung in $BOT_NOTE_LADDER; do
+      if [ "$rung" -ge "${BOUCLE_MAX_NOTE_CHARS:-1500}" ]; then
+        continue
+      fi
+      chosen="$rung"
+      export BOUCLE_BOT_NOTE_CHARS="$rung"
+      p=$(build_prompt "$role")
+      if [ "${#p}" -le "$ceiling" ]; then
+        break
+      fi
+    done
+    if [ "${#p}" -gt "$ceiling" ]; then
+      # Floor reached. We do NOT drop notes or touch human comments to close
+      # the gap — that would break the invariant that early preservation
+      # instructions stand alongside later amendments. Report and proceed.
+      echo "WARN: prompt is ${#p} chars, still above BOUCLE_MAX_PROMPT_CHARS=$ceiling after tightening bot notes to ${chosen:-n/a}. Human comments are never trimmed and no note is dropped — raise the ceiling or split the issue." >&2
+    fi
+  fi
+  unset BOUCLE_TRIM_QUIET
+  build_prompt "$role"
+}
+
+# ── 5. Run the agent ──────────────────────────────────────────────────
+PROMPT=$(build_prompt_within_budget "$ROLE")
+prompt_total_chars=${#PROMPT}
+report_prompt_size "$ROLE" "$PROMPT"
+
+# Write the role-specific system prompt to .jcode/prompt-overlay.md
+# so jcode loads it in addition to the repo-root AGENTS.md.
+write_prompt_overlay "$AGENT_FILE"
+
+# Capture agent stdout to a log file so the CI job can scrape a
+# drafted-but-unposted comment as a fallback when the agent runs out of
+# steps before calling glab. The log is per-issue, per-run (overwritten).
+# We redirect to the file then cat it (instead of tee) because run_with_retry
+# sets a global AGENT_EXIT — piping would run it in a subshell and lose that
+# variable. Redirect+cat preserves exit-code propagation with no race.
+AGENT_LOG="$STATE_DIR/agent-output.log"
+: > "$AGENT_LOG"
+
+# ── 4c. Pre-flight provider probe (#42) ───────────────────────────────
+# The reactive path (section 5b) discovers an exhausted quota the expensive
+# way: provision the runner, clone the repo, build the prompt, run the
+# agent, burn the retry budget, THEN fall back. With
+# BOUCLE_MAX_PARALLEL_ISSUES=5 that waste is multiplied by five before
+# anyone notices.
+#
+# This asks the provider first. It does NOT replace the reactive path — a
+# quota can be exhausted mid-run, and only 5b catches that.
+#
+# Fail-open by construction: an unreachable or unparseable probe runs the
+# agent anyway. The probe is an optimisation; it must never become a new
+# failure mode.
+probe_provider() {
+  local base_url="$1" api_key="$2"
+  [ -n "$base_url" ] && [ -n "$api_key" ] || {
+    echo "ok"
+    return 0
+  }
+  local code
+  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+    -H "Authorization: Bearer $api_key" \
+    "${base_url%/}/models" 2> /dev/null || echo "000")
+  case "$code" in
+    429 | 402) echo "quota" ;;
+    401 | 403) echo "auth" ;;
+    5??) echo "down" ;;
+    # 000 = curl could not reach the endpoint at all. Treat as unknown, not
+    # as down: a runner with flaky egress must not stop the loop.
+    000) echo "ok" ;;
+    *) echo "ok" ;;
+  esac
+}
+
+# One probe per TTL window shared by every job on this runner, so five
+# parallel issues do not issue five probes.
+probe_cached() {
+  local name="$1" base_url="$2" api_key="$3"
+  local ttl="${BOUCLE_QUOTA_PROBE_TTL:-300}"
+  case "$ttl" in
+    '' | *[!0-9]*) ttl=300 ;;
+  esac
+  local cache="${TMPDIR:-/tmp}/boucle-probe-${name}.cache"
+  if [ -f "$cache" ]; then
+    local age
+    age=$(($(date +%s) - $(stat -c %Y "$cache" 2> /dev/null || echo 0)))
+    if [ "$age" -lt "$ttl" ]; then
+      cat "$cache"
+      return 0
+    fi
+  fi
+  local result
+  result=$(probe_provider "$base_url" "$api_key")
+  echo "$result" > "$cache" 2> /dev/null || true
+  echo "$result"
+}
+
+if [ "${BOUCLE_QUOTA_PROBE:-true}" = "true" ] && [ "$DRY_RUN" != "true" ]; then
+  if [ "$FREERIDE_MODE" = "1" ]; then
+    # Freeride: probe all configured providers, select first OK.
+    FREERIDE_OK_LIST=""
+    FREERIDE_FAILED_LIST=""
+    while IFS='|' read -r fr_p_name fr_p_url fr_p_key_env fr_p_model fr_p_thinking; do
+      eval "fr_p_key=\${${fr_p_key_env}:-}"
+      # shellcheck disable=SC2154
+      fr_p_status=$(probe_cached "freeride-$fr_p_name" "$fr_p_url" "$fr_p_key")
+      echo "[boucle:freeride:probe] $fr_p_name: $fr_p_status" >&2
+      if [ "$fr_p_status" = "ok" ]; then
+        FREERIDE_OK_LIST="${FREERIDE_OK_LIST}${fr_p_name}|${fr_p_url}|${fr_p_key_env}|${fr_p_model}|${fr_p_thinking}
+"
+      else
+        FREERIDE_FAILED_LIST="${FREERIDE_FAILED_LIST}${fr_p_name}:${fr_p_status} "
+      fi
+    done <<< "$FREERIDE_PROVIDER_LIST"
+    if [ -z "$FREERIDE_OK_LIST" ]; then
+      echo "[boucle] ERROR: all freeride providers unavailable ($FREERIDE_FAILED_LIST) — not starting the agent (exit 4)." >&2
+      echo "[boucle] Add a new provider key or wait for quota reset, then re-trigger." >&2
+      exit 4
+    fi
+    FIRST_OK=$(echo "$FREERIDE_OK_LIST" | head -1)
+    IFS='|' read -r FR_NAME FR_URL FR_KEY_ENV FR_MODEL FR_THINKING <<< "$FIRST_OK"
+    PROVIDER_PROFILE="freeride-$FR_NAME"
+    MODEL="$FR_MODEL"
+    inject_freeride_thinking "$FR_THINKING"
+    echo "[boucle:freeride] selected primary: $FR_NAME ($MODEL)" >&2
+    FREERIDE_ROTATION_LIST=$(echo "$FREERIDE_OK_LIST" | tail -n +2)
+  else
+    PRIMARY_STATUS=$(probe_cached primary "${BOUCLE_LLM_BASE_URL:-}" "${BOUCLE_LLM_API_KEY:-}")
+    if [ "$PRIMARY_STATUS" != "ok" ]; then
+      echo "[boucle:probe] primary provider unavailable ($PRIMARY_STATUS) before the run" >&2
+      FALLBACK_STATUS="unconfigured"
+      if [ -n "$FALLBACK_PROVIDER" ] && [ -n "${BOUCLE_FALLBACK_BASE_URL:-}" ]; then
+        FALLBACK_STATUS=$(probe_cached fallback "${BOUCLE_FALLBACK_BASE_URL:-}" "${BOUCLE_FALLBACK_API_KEY:-}")
+      fi
+      if [ "$FALLBACK_STATUS" = "ok" ]; then
+        echo "[boucle:probe] switching to fallback provider ($FALLBACK_PROVIDER/$FALLBACK_MODEL) pre-emptively" >&2
+        PROVIDER_PROFILE="$FALLBACK_PROVIDER"
+        MODEL="$FALLBACK_MODEL"
+        FALLBACK_USED=1
+      else
+        echo "[boucle] ERROR: primary provider is $PRIMARY_STATUS and fallback is $FALLBACK_STATUS — not starting the agent (exit 4)." >&2
+        echo "[boucle] No runner time is spent on a provider that cannot answer. Check the provider quota, then re-trigger." >&2
+        exit 4
+      fi
+    fi
+  fi
+fi
+
+if [ "$DRY_RUN" = "true" ]; then
+  echo "[boucle] DRY RUN — agent output goes to log only, nothing pushed"
+  # Start RSS sampler; /usr/bin/time wrapper is skipped in dry-run to keep
+  # output untouched. Sampler will be stopped below.
+  start_rss_sampler 2> /dev/null || true
+  # Agent stdout+stderr → $AGENT_LOG (for CI log-scraping fallback), then
+  # echoed to the job log. AGENT_EXIT is set by run_with_retry in this
+  # shell (no pipe → no subshell → global propagates). Final exit ignored.
+  run_with_retry -- jcode --provider-profile "$PROVIDER_PROFILE" --model "$MODEL" --tools '*' --no-update --no-selfdev run --quiet "$PROMPT" > "$AGENT_LOG" 2>&1 || echo "WARN: jcode dry-run exited non-zero (crash or step limit) — see $AGENT_LOG" >&2
+  cat "$AGENT_LOG"
+  # Stop the RSS sampler so it stops writing to the tmp file.
+  if [ -n "$RSS_SAMPLER_PID" ] && kill -0 "$RSS_SAMPLER_PID" 2> /dev/null; then
+    kill "$RSS_SAMPLER_PID" 2> /dev/null || true
+    wait "$RSS_SAMPLER_PID" 2> /dev/null || true
+  fi
+  RSS_SAMPLER_PID=""
+  print_metrics_line
+  # In dry run, we don't assert side effects
+  exit 0
+fi
+
+AGENT_EXIT=0
+# Wrap jcode with /usr/bin/time -v when available to capture peak RSS.
+# Exit code still propagates via the AGENT_EXIT global set by run_with_retry
+# (no pipe → no subshell).
+# Agent stdout+stderr → $AGENT_LOG (for CI log-scraping fallback), then
+# echoed to the job log for human debugging.
+if [ "$HAVE_GNU_TIME" = "1" ] && [ -n "$METRICS_TMP" ]; then
+  run_with_retry -- /usr/bin/time -v -o "$METRICS_TMP" \
+    jcode --provider-profile "$PROVIDER_PROFILE" --model "$MODEL" --tools '*' --no-update --no-selfdev run --quiet "$PROMPT" > "$AGENT_LOG" 2>&1
+else
+  # Fall back to /proc poller if /usr/bin/time is missing.
+  start_rss_sampler 2> /dev/null || true
+  run_with_retry -- jcode --provider-profile "$PROVIDER_PROFILE" --model "$MODEL" --tools '*' --no-update --no-selfdev run --quiet "$PROMPT" > "$AGENT_LOG" 2>&1
+  if [ -n "$RSS_SAMPLER_PID" ] && kill -0 "$RSS_SAMPLER_PID" 2> /dev/null; then
+    kill "$RSS_SAMPLER_PID" 2> /dev/null || true
+    wait "$RSS_SAMPLER_PID" 2> /dev/null || true
+  fi
+  RSS_SAMPLER_PID=""
+fi
+cat "$AGENT_LOG"
+print_metrics_line
+
+# ── 5b. Provider fallback (API-down recovery) ─────────────────────────
+# If the primary is down (empty log), quota exhausted (429/402), or the
+# agent is looping (duplicate output >5x), retry with the next provider.
+# Freeride mode: iterates through FREERIDE_ROTATION_LIST (remaining OK
+# providers from the probe). Legacy mode: tries FALLBACK_PROVIDER.
+FALLBACK_REASON=""
+if is_api_down "$AGENT_LOG"; then
+  FALLBACK_REASON="empty log / no agent activity"
+elif [ "$AGENT_EXIT" -ne 0 ] && is_quota_exhausted "$AGENT_LOG"; then
+  FALLBACK_REASON="persistent quota error (HTTP 429/402)"
+elif is_agent_looping "$AGENT_LOG"; then
+  FALLBACK_REASON="agent looping (duplicate output)"
+fi
+
+# Freeride rotation: try each remaining OK provider in sequence.
+if [ "$FREERIDE_MODE" = "1" ] && [ -n "$FREERIDE_ROTATION_LIST" ] && [ -n "$FALLBACK_REASON" ]; then
+  echo "[boucle:freeride] primary provider ($FR_NAME) appears down ($FALLBACK_REASON) — rotating to next provider" >&2
+  cp "$AGENT_LOG" "${AGENT_LOG}.primary" 2> /dev/null || true
+  ROTATION_SUCCESS=0
+  while IFS='|' read -r rot_name rot_url rot_key_env rot_model rot_thinking; do
+    [ -z "$rot_name" ] && continue
+    echo "[boucle:freeride] trying $rot_name ($rot_model)" >&2
+    : > "$AGENT_LOG"
+    PROVIDER_PROFILE="freeride-$rot_name"
+    MODEL="$rot_model"
+    FR_NAME="$rot_name"
+    inject_freeride_thinking "$rot_thinking"
+    run_with_retry -- jcode --provider-profile "$PROVIDER_PROFILE" --model "$MODEL" --tools '*' --no-update --no-selfdev run --quiet "$PROMPT" > "$AGENT_LOG" 2>&1
+    cat "$AGENT_LOG"
+    print_metrics_line
+    if ! is_api_down "$AGENT_LOG" \
+      && ! { [ "$AGENT_EXIT" -ne 0 ] && is_quota_exhausted "$AGENT_LOG"; } \
+      && ! is_agent_looping "$AGENT_LOG"; then
+      ROTATION_SUCCESS=1
+      FALLBACK_USED=1
+      FR_THINKING="$rot_thinking"
+      echo "[boucle:freeride] provider $rot_name succeeded — continuing" >&2
+      break
+    fi
+    echo "[boucle:freeride] provider $rot_name also failed — trying next" >&2
+  done <<< "$FREERIDE_ROTATION_LIST"
+  if [ "$ROTATION_SUCCESS" = "0" ]; then
+    echo "[boucle:freeride] all providers exhausted — escalating" >&2
+    {
+      echo ""
+      echo "--- [boucle:freeride] primary attempt log ---"
+      cat "${AGENT_LOG}.primary" 2> /dev/null
+    } >> "$AGENT_LOG"
+  fi
+  rm -f "${AGENT_LOG}.primary" 2> /dev/null || true
+elif [ -n "$FALLBACK_PROVIDER" ] && [ -n "$FALLBACK_REASON" ]; then
+  echo "[boucle:fallback] primary provider appears down ($FALLBACK_REASON) — retrying with $FALLBACK_PROVIDER/$FALLBACK_MODEL" >&2
+  # Preserve the primary log for diagnosis, start fresh for the fallback.
+  cp "$AGENT_LOG" "${AGENT_LOG}.primary" 2> /dev/null || true
+  : > "$AGENT_LOG"
+  run_with_retry -- jcode --provider-profile "$FALLBACK_PROVIDER" --model "$FALLBACK_MODEL" --tools '*' --no-update --no-selfdev run --quiet "$PROMPT" > "$AGENT_LOG" 2>&1
+  cat "$AGENT_LOG"
+  print_metrics_line
+  if is_api_down "$AGENT_LOG" || { [ "$AGENT_EXIT" -ne 0 ] && is_quota_exhausted "$AGENT_LOG"; }; then
+    # Fallback also down — restore primary log so the exit-code guard and
+    # CI diagnostic capture both attempts. Escalation proceeds as before.
+    echo "[boucle:fallback] fallback provider ($FALLBACK_PROVIDER) also down — escalating" >&2
+    {
+      echo ""
+      echo "--- [boucle:fallback] primary attempt log ---"
+      cat "${AGENT_LOG}.primary" 2> /dev/null
+    } >> "$AGENT_LOG"
+  else
+    FALLBACK_USED=1
+    echo "[boucle:fallback] fallback provider ($FALLBACK_PROVIDER/$FALLBACK_MODEL) succeeded — continuing" >&2
+  fi
+  rm -f "${AGENT_LOG}.primary" 2> /dev/null || true
+fi
+
+# ── 5a0. Scrub secrets from the agent log ─────────────────────────────
+# The log is raw agent stdout+stderr and it leaves the runner: CI uploads it
+# as an artifact (#33) so a human can see WHY the loop escalated. Anything
+# the agent echoed — an env dump, a curl invocation, a provider error body
+# quoting the key back — would otherwise ship with it.
+#
+# Section 2 removes CLOUDFLARE_API_TOKEN from the agent's *environment*;
+# that is a different guarantee and does not cover log *content*. The LLM
+# key in particular CANNOT be unset (jcode reads it via api_key_env), so
+# redaction here is the only thing standing between it and the artifact.
+#
+# Runs BEFORE every exit path below: a failed run is exactly the one whose
+# log gets read, so scrubbing only on success would protect nothing.
+scrub_agent_log() {
+  local log="$1"
+  [ -f "$log" ] || return 0
+  # Literal replacement (not regex) for known values: a key containing a
+  # regex metacharacter must still be redacted. Values shorter than 8 chars
+  # are skipped — redacting a short string would shred unrelated output.
+  BOUCLE_SCRUB_CF="${SCRUBBED_CF_TOKEN:-}" awk '
+    function lit_replace(s, find, repl,   out, p) {
+      out = ""
+      while ((p = index(s, find)) > 0) {
+        out = out substr(s, 1, p - 1) repl
+        s = substr(s, p + length(find))
+      }
+      return out s
+    }
+    BEGIN {
+      n = split("BOUCLE_LLM_API_KEY BOUCLE_FALLBACK_API_KEY BOUCLE_TOKEN BOUCLE_BOT_TOKEN BOUCLE_SCRUB_CF CLOUDFLARE_API_TOKEN BOUCLE_GROQ_API_KEY BOUCLE_NVIDIA_API_KEY BOUCLE_CEREBRAS_API_KEY BOUCLE_ZHIPU_API_KEY BOUCLE_CLOUDFLARE_API_KEY BOUCLE_HUGGINGFACE_API_KEY BOUCLE_MISTRAL_API_KEY", names, " ")
+    }
+    {
+      line = $0
+      for (i = 1; i <= n; i++) {
+        v = ENVIRON[names[i]]
+        if (length(v) >= 8) line = lit_replace(line, v, "[REDACTED:" names[i] "]")
+      }
+      # Token shapes that may arrive from anywhere (a forge CLI trace, a
+      # provider error body). Prefix-anchored so ordinary words survive.
+      gsub(/gh[pousr]_[A-Za-z0-9]+/, "[REDACTED:github-token]", line)
+      gsub(/glpat-[A-Za-z0-9_-]+/, "[REDACTED:gitlab-pat]", line)
+      gsub(/sk-[A-Za-z0-9._-]+/, "[REDACTED:api-key]", line)
+      gsub(/[Bb]earer +[A-Za-z0-9._-]+/, "Bearer [REDACTED]", line)
+      print line
+    }
+  ' "$log" > "${log}.scrubbed" 2> /dev/null \
+    && mv "${log}.scrubbed" "$log" \
+    || rm -f "${log}.scrubbed" 2> /dev/null || true
+}
+
+scrub_agent_log "$AGENT_LOG"
+
+# ── 5a. Empty-output guard (silent-failure detection) ─────────────────
+# If the agent produced NO posted comment AND NO drafted triage comment
+# in its log, it failed silently (e.g. hit the model output cap mid-comment
+# before reaching the glab tool call, or the model returned void). Exit 3
+# so the CI can escalate to a human instead of leaving the issue at
+# boucle:triage for the doctor to re-trigger forever (issue #27 loop).
+# Only applies to roles that MUST post a comment (triage/reviewer/e2e).
+# worker is exempt (it commits code, not comments).
+case "$ROLE" in
+  triage | reviewer | e2e)
+    if [ -s "$AGENT_LOG" ]; then
+      # A posted comment shows up as a forge note call (glab issue note /
+      # glab api POST / gh api POST / bin/forge-note). A drafted-but-
+      # unposted comment shows up as the boucle:triage (or boucle:verdict)
+      # marker in the log text. If neither is present, the agent produced
+      # nothing actionable.
+      if ! grep -qiE '(glab|gh) (issue note|mr note|api .* -X POST|api .*/notes)|bin/forge-note' "$AGENT_LOG" \
+        && ! grep -qiE '<!-- boucle:(triage|verdict)' "$AGENT_LOG"; then
+        # A persistent quota error (HTTP 429/402, LESSONS.yml lesson #30)
+        # leaves activity traces in the log but produces no comment — the
+        # model never completed a run. Retrying cannot fix an exhausted
+        # quota, so classify it as provider-down (exit 4) to enable the
+        # fallback instead of the exit-3 silent-failure escalation.
+        if is_quota_exhausted "$AGENT_LOG"; then
+          echo "[boucle] ERROR: agent log shows persistent quota errors (HTTP 429/402) — provider down (exit 4)." >&2
+          echo "[boucle] CI should treat this as provider-down and fall back before escalating to human." >&2
+          exit 4
+        fi
+        echo "[boucle] ERROR: agent produced no posted comment and no drafted comment in log — silent failure (exit 3)." >&2
+        echo "[boucle] This breaks the doctor re-trigger loop. CI should escalate to human." >&2
+        exit 3
+      fi
+    else
+      echo "[boucle] ERROR: agent log is empty — silent failure (exit 3)." >&2
+      exit 3
+    fi
+    ;;
+  worker)
+    # Worker silent-failure detection: jcode exits 1 with no output when
+    # the model API is down or out of credits — no stdout, no tool calls,
+    # no model response. Exit 4 so the CI can post a diagnostic comment
+    # on the issue with the available logs instead of the generic "agent
+    # likely exhausted its step budget" message that misdiagnoses a model
+    # outage as a step-budget issue (issue #35 on a consumer repo:
+    # worker ran for 40 min with empty log because ollama-cloud credits
+    # were exhausted).
+    if [ ! -s "$AGENT_LOG" ]; then
+      echo "[boucle] ERROR: worker agent log is empty — jcode exited $AGENT_EXIT (likely API down or out of credits, exit 4)." >&2
+      exit 4
+    fi
+    # Heuristic: if the log has content but no sign of agent activity (no
+    # tool calls, no file reads/writes, no git operations), the agent started
+    # but never received a model response. jcode logs tool calls as
+    # "tool_use" / "function_call" / file paths — if none appear, the model
+    # never responded.
+    if ! grep -qiE 'tool_use|function_call|read|write|edit|bash|glob|grep|git (add|commit|diff|status|checkout)|\.astro|\.ts|\.css|\.md|src/|public/' "$AGENT_LOG"; then
+      echo "[boucle] ERROR: worker agent log shows no tool activity — jcode exited $AGENT_EXIT with no tool activity (likely API down or out of credits, exit 4)." >&2
+      echo "[boucle] Log content (first 500 chars):" >&2
+      head -c 500 "$AGENT_LOG" >&2 2> /dev/null || true
+      exit 4
+    fi
+    # Persistent quota errors (HTTP 429/402) on a failed run are a
+    # provider-down condition (LESSONS.yml lesson #30), not a step-budget
+    # issue — retrying cannot fix an exhausted quota. Gated on a non-zero
+    # exit so a worker that succeeded despite a transient 429 is not
+    # falsely escalated.
+    if [ "$AGENT_EXIT" -ne 0 ] && is_quota_exhausted "$AGENT_LOG"; then
+      echo "[boucle] ERROR: worker agent log shows persistent quota errors (HTTP 429/402) — provider down (exit 4)." >&2
+      exit 4
+    fi
+    ;;
+esac
+
+# ── 6. Restore scrubbed secrets ───────────────────────────────────────
+if [ -n "$SCRUBBED_CF_TOKEN" ]; then
+  export CLOUDFLARE_API_TOKEN="$SCRUBBED_CF_TOKEN"
+fi
+
+# ── 7. Append to iterations.md ────────────────────────────────────────
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+FILES_TOUCHED=""
+if [ -d "$BOUCLE_WORKSPACE" ] && command -v git &> /dev/null; then
+  FILES_TOUCHED=$(cd "$BOUCLE_WORKSPACE" && git diff --name-only HEAD 2> /dev/null | tr '\n' ', ' || echo "none")
+fi
+
+cat >> "$ITERATIONS_FILE" << EOF
+
+## $TIMESTAMP — $ROLE (agent=$AGENT) — iteration $ITERATION${FALLBACK_USED:+ [FALLBACK: $FALLBACK_PROVIDER/$FALLBACK_MODEL]}
+- Result: <see agent output>
+- Files touched: ${FILES_TOUCHED:-none}
+- Side effect asserted: <see job assertion>
+EOF
+
+# ── 7b. Cost accounting (#35) ─────────────────────────────────────────
+# Boucle's pitch is a 9.9x cost advantage over Claude Code (docs/cost-
+# benchmark.md), and until now a user could not verify that on their own
+# repository: the number lived in the README, not in the product.
+#
+# Best-effort by design. Providers report usage inconsistently and some not
+# at all; a missing count records "n/a" and the run continues. Fabricating a
+# number would be worse than reporting none.
+extract_token_usage() {
+  local log="$1" field="$2"
+  [ -f "$log" ] || return 0
+  grep -oE "\"?${field}\"?[[:space:]]*[:=][[:space:]]*[0-9]+" "$log" 2> /dev/null \
+    | grep -oE '[0-9]+$' \
+    | awk '{ s += $1 } END { if (NR > 0) print s }'
+}
+
+# Append one entry per agent invocation. The accumulator survives across
+# iterations exactly like iterations.md, so a re-run adds to the total
+# instead of overwriting it.
+record_cost() {
+  local pt ct cost="" model_used="$MODEL" provider_used="$PROVIDER_PROFILE"
+  pt=$(extract_token_usage "$AGENT_LOG" "prompt_tokens")
+  ct=$(extract_token_usage "$AGENT_LOG" "completion_tokens")
+  [ -z "$pt" ] && pt=$(extract_token_usage "$AGENT_LOG" "input_tokens")
+  [ -z "$ct" ] && ct=$(extract_token_usage "$AGENT_LOG" "output_tokens")
+
+  # A run that fell back is attributed to the fallback model, not the
+  # primary — otherwise the breakdown blames the wrong provider.
+  if [ -n "${FALLBACK_USED:-}" ]; then
+    model_used="${FALLBACK_MODEL:-$MODEL}"
+    provider_used="${FALLBACK_PROVIDER:-$PROVIDER_PROFILE}"
+  fi
+
+  # Dollars only when the consumer supplied a price table. Provider prices
+  # drift and boucle is provider-agnostic: hardcoding them in the engine
+  # would produce confident wrong numbers.
+  if [ -n "${BOUCLE_PRICING_JSON:-}" ] && [ -n "$pt$ct" ]; then
+    cost=$(echo "${BOUCLE_PRICING_JSON}" \
+      | jq -r --arg m "$model_used" --argjson p "${pt:-0}" --argjson c "${ct:-0}" \
+        '(.[$m] // empty) as $x | if $x then (($p / 1000000) * ($x.in // 0) + ($c / 1000000) * ($x.out // 0)) else "" end' \
+        2> /dev/null || echo "")
+    [ "$cost" = "null" ] && cost=""
+  fi
+
+  echo "[boucle:metrics] role=$ROLE iteration=$ITERATION model=$model_used prompt_tokens=${pt:-n/a} completion_tokens=${ct:-n/a} cost_usd=${cost:-n/a}" >&2
+
+  local file="$STATE_DIR/cost.json"
+  [ -s "$file" ] || echo '{"entries":[]}' > "$file" 2> /dev/null || return 0
+  local tmp="${file}.tmp"
+  if jq --arg role "$ROLE" --arg model "$model_used" --arg provider "$provider_used" \
+    --arg iter "$ITERATION" --arg pt "${pt:-}" --arg ct "${ct:-}" --arg cost "${cost:-}" \
+    --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '.entries += [{
+       timestamp: $ts, role: $role, iteration: ($iter | tonumber? // $iter),
+       model: $model, provider: $provider,
+       prompt_tokens: ($pt | if . == "" then null else tonumber end),
+       completion_tokens: ($ct | if . == "" then null else tonumber end),
+       cost_usd: ($cost | if . == "" then null else tonumber end)
+     }]' "$file" > "$tmp" 2> /dev/null; then
+    mv "$tmp" "$file"
+  else
+    rm -f "$tmp" 2> /dev/null || true
+    echo "[boucle] WARN: could not append to $file — cost accounting skipped for this run" >&2
+  fi
+}
+
+# ── 7b. Loop-health record (#52) ──────────────────────────────────────
+# One JSONL line per agent run, derived from what we already emit. Read by
+# bin/health and by boucle_escalation_diagnostic. Survives across iterations
+# via the state cache (like cost.json).
+h_model="$MODEL"
+h_provider="$PROVIDER_PROFILE"
+if [ -n "${FALLBACK_USED:-}" ]; then
+  h_model="${FALLBACK_MODEL:-$MODEL}"
+  h_provider="${FALLBACK_PROVIDER:-$PROVIDER_PROFILE}"
+fi
+h_pt=$(extract_token_usage "$AGENT_LOG" "prompt_tokens")
+[ -z "$h_pt" ] && h_pt=$(extract_token_usage "$AGENT_LOG" "input_tokens")
+h_cost=""
+if [ -n "${BOUCLE_PRICING_JSON:-}" ] && [ -n "$h_pt" ]; then
+  h_cost=$(echo "${BOUCLE_PRICING_JSON}" \
+    | jq -r --arg m "$h_model" --argjson p "${h_pt:-0}" \
+      '(.[$m] // empty) as $x | if $x then (($p / 1000000) * ($x.in // 0)) else "" end' \
+      2> /dev/null || echo "")
+  [ "$h_cost" = "null" ] && h_cost=""
+fi
+boucle_health_record "$ISSUE" "$ROLE" "$ITERATION" "$AGENT_EXIT" \
+  "${prompt_total_chars:-0}" "${h_pt:-}" "${h_cost:-}" "$h_model" "$h_provider" || true
+
+record_cost || true
+
+# ── 8. Assert declared side effect ────────────────────────────────────
+# The job (not bin/jc) asserts the side effect after this script exits.
+# bin/jc just runs the agent and logs. The job checks exit code + git/API state.
+
+exit $AGENT_EXIT
