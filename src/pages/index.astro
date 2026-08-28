@@ -32,13 +32,28 @@ const description = hero.data.metaDescription;
     <meta name="theme-color" content="#0d1117" />
     <link rel="icon" type="image/png" href="/boucle-logo.png" />
     <!-- Open Graph social-share preview (self-hosted assets only, GDPR-safe).
-         og:image is the absolute URL of the static logo PNG at the apex domain
-         https://boucle.dev/ so social crawlers resolve it correctly. -->
+         og:image is the absolute URL of the 1200×630 preview card at the apex
+         domain https://boucle.dev/ so social crawlers resolve it correctly.
+         The card (public/og-image.png) features the real boucle logo and is
+         generated oneshot from DESIGN.md tokens; it is a separate asset from
+         the favicon (public/boucle-logo.png). -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="boucle" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content="https://boucle.dev/boucle-logo.png" />
+    <meta property="og:image" content="https://boucle.dev/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="boucle — zero-code autonomous product builder. Great ideas deserve to ship." />
     <meta property="og:url" content="https://boucle.dev/" />
+    <!-- Twitter/X card: summary_large_image for the large-format preview.
+         twitter:title/description/image are set explicitly (not inherited)
+         so X renders the large card with the correct content. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content="https://boucle.dev/og-image.png" />
+    <meta name="twitter:image:alt" content="boucle — zero-code autonomous product builder. Great ideas deserve to ship." />
     <style>
       /* Self-hosted fonts — no Google Fonts CDN (GDPR).
          Unbounded (display) and Sora (body) are variable fonts (wght axis),

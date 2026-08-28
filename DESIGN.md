@@ -135,9 +135,12 @@ The primary brand assets are raster (the only raster files on the site):
   hero via an `img` element, shown large in its own standalone column on
   desktop. Animated GIFs play natively; they cannot be paused by
   `prefers-reduced-motion`.
-- **`public/boucle-logo.png`** — the static logo (714×714). Serves the favicon
-  and the Open Graph `og:image`. It is a separate static asset from the hero
-  GIF.
+- **`public/boucle-logo.png`** — the static logo (714×714). Serves the favicon.
+  It is a separate static asset from the hero GIF.
+- **`public/og-image.png`** — the Open Graph social-share preview card
+  (1200×630, 1.91:1). Generated oneshot from the DESIGN.md tokens and the real
+  boucle logo, committed to `public/`. It is the `og:image`/`twitter:image`
+  source; it is a separate asset from the favicon and the hero GIF.
 
 The GIF is decorative brand identity: it carries `aria-hidden="true"` and an
 empty `alt` so assistive tech skips it. The hero logo-lockup retains a
