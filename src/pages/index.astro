@@ -31,6 +31,11 @@ const description = hero.data.metaDescription;
     <meta name="description" content={description} />
     <meta name="theme-color" content="#0d1117" />
     <link rel="icon" type="image/png" href="/boucle-logo.png" />
+    <!-- Canonical URL — always the apex domain https://boucle.dev/ (hardcoded,
+         not derived from the request). GitHub Pages serves the same content at
+         ankaboot-source.github.io/boucle.dev/, so the canonical disambiguates
+         the duplicate and points crawlers at the custom domain. -->
+    <link rel="canonical" href="https://boucle.dev/" />
     <!-- Open Graph social-share preview (self-hosted assets only, GDPR-safe).
          og:image is the absolute URL of the 1200×630 preview card at the apex
          domain https://boucle.dev/ so social crawlers resolve it correctly.
@@ -54,6 +59,19 @@ const description = hero.data.metaDescription;
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content="https://boucle.dev/og-image.png" />
     <meta name="twitter:image:alt" content="boucle — zero-code autonomous product builder. Great ideas deserve to ship." />
+    <!-- Structured data (JSON-LD) — WebSite schema so search engines understand
+         what the product is. url matches the canonical and og:url; image is the
+         absolute og-image URL at the apex domain. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "boucle",
+        "url": "https://boucle.dev/",
+        "description": "Great ideas deserve to ship. From a ticket in your forge to a feature in production. Agentic AI serving humans, not vice versa. Boucle works so you can live. You decide at the key moments, nothing else.",
+        "image": "https://boucle.dev/og-image.png"
+      }
+    </script>
     <style>
       /* Self-hosted fonts — no Google Fonts CDN (GDPR).
          Unbounded (display) and Sora (body) are variable fonts (wght axis),
