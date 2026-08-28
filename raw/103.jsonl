@@ -12,3 +12,4 @@
 {"timestamp":"2026-08-28T22:11:36Z","role":"e2e","iteration":1,"exit_code":0,"prompt_chars":718,"tokens":"n/a","cost_usd":"n/a","model":"","provider":"","skills":["verification-before-completion"],"skills_evidence":"parsed","arm":"full","setup_fail":"","swarm_spawns":0}
 {"timestamp":"2026-08-28T22:11:39Z","role":"e2e","outcome":"no-verdict","detail":""}
 {"timestamp":"2026-08-28T22:12:42Z","role":"e2e","iteration":1,"exit_code":0,"prompt_chars":718,"tokens":"n/a","cost_usd":"n/a","model":"","provider":"","skills":["verification-before-completion"],"skills_evidence":"parsed","arm":"full","setup_fail":"","swarm_spawns":0}
+{"timestamp":"2026-08-28T22:12:47Z","role":"e2e","outcome":"no-verdict","detail":""}
