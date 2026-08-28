@@ -2,3 +2,4 @@
 {"timestamp":"2026-08-28T17:22:45Z","role":"worker","iteration":1,"exit_code":0,"prompt_chars":16012,"tokens":"n/a","cost_usd":"n/a","model":"deepseek-v4-flash:0731","provider":"boucle","skills":[],"arm":"full","setup_fail":"","swarm_spawns":0}
 {"timestamp":"2026-08-28T17:22:46Z","role":"worker","outcome":"committed","detail":"iteration 1"}
 {"timestamp":"2026-08-28T17:25:41Z","role":"reviewer","iteration":1,"exit_code":0,"prompt_chars":36201,"tokens":"n/a","cost_usd":"n/a","model":"deepseek-v4-flash:0731","provider":"boucle","skills":[],"arm":"full","setup_fail":"","swarm_spawns":0}
+{"timestamp":"2026-08-28T17:25:44Z","role":"reviewer","outcome":"PASS","detail":"iteration 1"}
