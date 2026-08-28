@@ -20,3 +20,4 @@
 {"timestamp":"2026-08-28T22:18:03Z","role":"e2e","iteration":1,"exit_code":0,"prompt_chars":718,"tokens":"n/a","cost_usd":"n/a","model":"glm-5.2","provider":"boucle","skills":["verification-before-completion"],"skills_evidence":"parsed","arm":"full","setup_fail":"toolchain","swarm_spawns":0}
 {"timestamp":"2026-08-28T22:18:08Z","role":"e2e","outcome":"no-verdict","detail":""}
 {"timestamp":"2026-08-28T22:20:09Z","role":"e2e","iteration":1,"exit_code":0,"prompt_chars":718,"tokens":"n/a","cost_usd":"n/a","model":"","provider":"","skills":["verification-before-completion"],"skills_evidence":"parsed","arm":"full","setup_fail":"","swarm_spawns":0}
+{"timestamp":"2026-08-28T22:20:13Z","role":"e2e","outcome":"no-verdict","detail":""}
