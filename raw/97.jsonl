@@ -4,3 +4,4 @@
 {"timestamp":"2026-08-28T17:25:41Z","role":"reviewer","iteration":1,"exit_code":0,"prompt_chars":36201,"tokens":"n/a","cost_usd":"n/a","model":"deepseek-v4-flash:0731","provider":"boucle","skills":[],"arm":"full","setup_fail":"","swarm_spawns":0}
 {"timestamp":"2026-08-28T17:25:44Z","role":"reviewer","outcome":"PASS","detail":"iteration 1"}
 {"timestamp":"2026-08-28T17:32:17Z","role":"e2e","iteration":1,"exit_code":0,"prompt_chars":717,"tokens":"n/a","cost_usd":"n/a","model":"glm-5.2","provider":"boucle","skills":[],"arm":"full","setup_fail":"","swarm_spawns":0}
+{"timestamp":"2026-08-28T17:32:21Z","role":"e2e","outcome":"UNCERTAIN","detail":""}
