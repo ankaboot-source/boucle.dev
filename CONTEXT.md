@@ -42,8 +42,8 @@ dogfood consumer of the engine.
 
 - **Afrofuturism** — a figurative afrofuturist logo (golden afro, gold
   hoop créoles, afrofuturist gold visor with the infinity loop), kente /
-  adinkra / Sahelian geometric motifs, gold / violet / cyan accents on a
-  deep space black base.
+  adinkra / Sahelian geometric motifs, gold / violet accents on a deep
+  space black base.
 - **Minimalism** — single page, no navigation bar, generous whitespace,
   forge corner radius (6px) on all surfaces, GitHub-dark-inspired surfaces,
   system-ui-first body type. Dark theme only.
