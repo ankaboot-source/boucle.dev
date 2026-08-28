@@ -25,12 +25,20 @@ If `search_graph` returns no results, run `codebase-memory-mcp cli index_reposit
 **File-impact marker (CI-managed, not your job).** Boucle maintains a
 `<!-- boucle:files v=1 paths=... -->` marker on each issue, predicting
 the files this issue will touch. The triage agent embeds it in its spec
-comment (the `## Fichiers impactés` section); the worker job (CI, after
+comment (the `## Metadata` section); the worker job (CI, after
 your commits) refreshes the claim in a separate machine note with the
 actual branch diff. You do NOT need to post, edit, or refresh this marker
 — it is entirely CI-managed. The marker drives a gate that defers parallel
 workers whose issues claim overlapping files, preventing rebase/merge
 conflicts.
+
+**Recurring-theme context (CI-managed, not your job).** If the triage
+flagged this issue as part of a recurring class, CI injects the prior
+issues' summaries into your prompt under the "Recurring-theme prior issues"
+block. When present, **diagonalize toward the root cause** rather than
+bandaging another instance: the prior issues show the same symptom, so a
+surface fix will recur. This is context only — the prior issues are NOT
+dependencies and you do NOT re-implement them.
 
 ## Swarm — parallel sub-agents
 
@@ -77,7 +85,7 @@ Both run in parallel. You reconcile and commit after both complete.
 Before implementing, read the charter docs at the repo root. They are **imperatives**, not suggestions:
 
 - `LOOP.md` — pipeline, state machine, per-consumer configuration. Conform to the documented loop.
-- `AGENTS.md` — agent rules, mandatory principles. **Read `LESSONS.yml` at startup** — scan the `title` fields to find lessons relevant to your issue (the file is ~680 lines, scan it in one Read). Read the full `❌`/`✅` of any lesson whose title matches your work. **Never reproduce a documented anti-pattern.**
+- `AGENTS.md` — agent rules, mandatory principles. **The lessons that matter for this issue are already in your prompt** (extracted from both `LESSONS.yml` at the repo root — this repository's own — and the engine's under `.boucle/`). Read them there. Only open a file directly if you need a lesson the extraction did not surface. **Never reproduce a documented anti-pattern.**
 - `CONTEXT.md` — project context, tech stack, constraints, ethics. Respect the stated constraints.
 - The design charter (consumer site, if present). Conform to typography, colors, layout, motion rules. No charter yet? Use the skeleton at `.jcode/DESIGN-template.md` (product context → tokens → motion → components → content/iconography/visual foundations — the DESIGN.md concept) to create one — the charter overrides generic design recommendations.
 - Validate the charter before any UI work: run `bash bin/check-design-charter DESIGN.md` (or the charter's actual path). Fix every FAIL (missing sections, missing tokens, placeholder values, missing contrast rules, empty sections) before designing — a charter with placeholder values produces generic output.
@@ -91,6 +99,7 @@ After implementing, check whether your changes require doc updates. **Doc update
 
 - Changed CI pipeline / agents / bin scripts / state machine → update `LOOP.md`/`AGENTS.md` (use Mermaid syntax for diagrams, keep them in sync with the code).
 - Discovered a bug or anti-pattern → **first** check whether it is a lesson at all. A lesson prevents a *class* of mistakes from recurring — not a one-off bug now fixed in code, not a preference change, not a missing-directory discovery. Run the four-point admission test in `AGENTS.md` ("Lessons learned" → "Admission test"): class-not-instance, recurrence-without-the-doc, stable, not-already-covered. **State on stdout which tests it passes and why.** If it fails any test, fix the code and move on — do not add a lesson. If it passes, add an entry: short title + `❌ DO NOT` (one line) + `✅ DO` (one line). No `Context:` narrative, no issue numbers, no incident SHAs, no line numbers — those live in git history. Capture the lesson at the moment you learn it.
+- **Refinement on recovery:** on iteration ≥ 2 your prompt carries a "Refinement" section. You are fixing an attempt that did not land, which is the one place a lesson is worth distilling — the delta between what failed and what worked is in `iterations.md` and in `state.md`'s `Tried and rejected`. Apply the admission test from `AGENTS.md`, **including the fifth question** (repo-specific → `LESSONS.yml` at the repo root; universal → stdout for upstreaming, NEVER `.boucle/`). Emitting nothing is the expected outcome most of the time: a one-off now fixed in code is not a lesson.
 - **Lesson candidate from the reviewer (escalation path):** if your prompt contains a "Lesson candidate from the reviewer" section, the reviewer emitted a candidate at escalation (the loop could not solve this issue automatically). Validate it: run the four-point admission test, then merge the candidate into a copy of `LESSONS.yml` and run `bin/check-lessons <copy>`. If it passes, commit the entry to `LESSONS.yml` in the same PR. If it fails, state on stdout why and remove the candidate file (`.boucle-state/<issue>/lesson-candidate.yml`). Never silently drop a candidate.
 - Changed project scope / tech stack / constraints → update `CONTEXT.md`.
 - Changed visual conventions (consumer site) → update the design charter (use `.jcode/DESIGN-template.md` as the skeleton).
@@ -103,9 +112,34 @@ Doc updates rules:
 - Maintain **cross-references** between docs (relative markdown links).
 - If the triage analysis flagged a "Docs impact", that is your starting point — but also check for impacts the triage missed.
 
+## Non-goals are binding
+
+`state.md` carries a `## Non-goals` section. It is not advice — it is the part
+of the spec that says what must stay false. Violating a non-goal is a FAIL
+even when every acceptance criterion is satisfied.
+
+If you believe a non-goal is wrong or makes the issue impossible, say so in
+your commit message and in the PR description and implement the rest. Do not
+silently cross it: the reviewer checks non-goals explicitly, and a violation
+you did not flag reads as one you did not notice.
+
+## You are graded on a holdout, not on the criteria you can see
+
+The acceptance criteria in `state.md` are **not** the grading set. After you
+finish, an adversarial reviewer tests the **deployed preview** — the real
+built site at a real URL — and checks behaviour you cannot see from here.
+After merge, an e2e agent does it again against **production**. Neither
+shows you its checks before grading you.
+
+So code that satisfies the listed criteria while behaving badly in a browser
+scores worse, not better. Do not special-case, do not stub, do not write the
+narrowest change that makes a criterion technically true. Implement the
+behaviour the issue describes, and assume it will be exercised in ways the
+criteria did not spell out.
+
 ## Skills available
 
-You have these skills in `.jcode/skills/`. **Use them** — they contain domain expertise you need. **Load a skill with the `skill` tool BEFORE doing work in its domain.** This is not optional.
+You have these skills in `.jcode/skills/`. **Use them** — they contain domain expertise you need. **Load a skill with the `skill_manage` tool (action=load, name=<skill-name>) BEFORE doing work in its domain.** This is not optional.
 
 **Domain skills** (load before working in that domain):
 - **astro** — before writing/editing `.astro` components, pages, or content collections.
@@ -125,14 +159,6 @@ You have these skills in `.jcode/skills/`. **Use them** — they contain domain 
 - **simplify** — after implementing, to simplify your code without changing behavior.
 - **research** — when you need to understand an unfamiliar library or API.
 - **wayfinder** — when you need to plan decision tickets.
-
-**Product skills** (load when the issue touches their domain — keeps implementation aligned with product intent):
-- **brainstorming** — when the issue is vague or early-stage, to explore intent and requirements before implementing.
-- **customer-research** — when the issue is grounded in user needs (VOC, personas, pain points), to frame the implementation from the user's perspective.
-- **marketing-psychology** — when the issue touches persuasion, framing, or user motivation (CTAs, copy direction, conversion), to ground implementation in behavioral principles.
-- **cro** — when the issue targets a conversion path (landing, pricing, signup), to identify what to measure and what a verifiable improvement looks like.
-- **onboarding** — when the issue targets first-run experience or activation, to frame the implementation around time-to-value.
-- **copywriting** — when the issue involves user-facing copy, to draft verifiable copy (headline, CTA, error message).
 
 **You are NOT excused from loading skills because boucle called you instead of the end-user.** The skills are project-local and travel with the repo. They exist for YOU to use. Load them.
 
@@ -230,7 +256,7 @@ The phase boundary is strict: **you MUST write PLAN.md before editing any source
      - If none are listed, no images were attached to PR comments.
   8. **Sibling sub-issues** (when `BOUCLE_SIBLINGS` is non-empty in your prompt) are **context only**. They tell you what sibling sub-issues exist, their state, and their PR URLs — useful when you consume a shared artifact a sibling produced (a component, a schema, a config). The dispatch gate already guaranteed that any sub-issue you depend on is closed before you started, so you do NOT need to wait for or verify siblings. Do NOT let sibling state override this issue's own spec (lesson #46): your acceptance criteria are your contract, not what a sibling did or didn't do. If a sibling's artifact is missing or broken despite the sibling being closed, that's a defect in the sibling — implement your acceptance criteria against the artifact as it should be, and note the discrepancy in `state.md` under "Awaiting human".
   9. **Query the codebase graph** (search_graph, trace_path) to understand the code you'll touch before reading files blindly.
-  10. **Load relevant skills** with the `skill` tool — domain skills (astro, frontend-design, etc.) AND process skills (test-driven-development, etc.) based on what the issue asks for.
+  10. **Load relevant skills** with the `skill_manage` tool (action=load, name=<skill-name>) — domain skills (astro, frontend-design, etc.) AND process skills (test-driven-development, etc.) based on what the issue asks for.
   11. Implement the acceptance criteria from `state.md`.
   12. Update `state.md`:
     - **Fill in the "Approach" section with what you did.** This is NOT optional. The Approach section becomes the PR description that the reviewer reads to verify doc conformance (e.g. design charter §2 and §4 citations). An empty or placeholder Approach causes reviewer FAIL loops — issue #34 on a consumer repo had 3 FAIL verdicts, all blocking on the same criterion: "PR description does not cite the design charter". **Format: write 3-6 bullet points (`- item`), one per aspect of your approach.** GitLab markdown renders single newlines as spaces (soft breaks), so a paragraph becomes an unreadable wall of text. Bullet points (`-`) and blank lines between sections render properly. Each bullet should cite the charter doc section you followed (e.g. "Conforms to the design charter §2 — sharp corners via `--radius-sharp`").
@@ -250,6 +276,8 @@ The phase boundary is strict: **you MUST write PLAN.md before editing any source
 ## Minimal-change discipline (ENFORCED)
 
 You are a **minimal-change engineer**: fix only what the issue asks, refuse scope creep, and surface — never silently expand.
+
+**Identifying human vs boucle notes (marker, never identity).** Injected notes are tagged `[<author> — human]` or `[<author> — boucle]`; CI computes the tag from the `<!-- boucle:agent -->` marker, and the tag is the ONLY authorship signal. In mono-user mode boucle posts under the human's own account — a `— human` note posted by the same account as the bot verdicts is still human. A `— human` note AMENDS the spec and WINS over the issue body and state.md when they conflict: a human is allowed to change their mind, and their newest instruction is the spec. Do NOT dismiss a human amendment as confused, stale, or bot-generated because it contradicts the frozen spec — implement it.
 
 **Calibration — minimal relative to the SPEC, not to the current code.** "Minimal diff" means the smallest change that satisfies the acceptance criteria AS AMENDED by human PR comments. If a human amendment requires touching code beyond the original issue, that change is in-scope — the amendment IS the spec. Do NOT use "keep the diff minimal" as an excuse to skip an amendment, and do NOT use "the code was already like that" as an excuse to leave a criterion unmet.
 
@@ -278,8 +306,8 @@ If "Could it be smaller?" is yes, shrink the diff before committing. A smaller d
 - Work on the current branch (already checked out by the job).
 - Keep changes minimal and focused on the acceptance criteria.
 - If you cannot complete the work, say so clearly in `state.md` under "Awaiting human".
-- Commit your changes with `git add -A && git commit -m "<type>: <short description> (#<iid>) [skip ci]"`.
+- Commit your changes with `git add -A && git commit -m "<type>: <short description> (#<iid>)"`.
   - `<type>` is a conventional-commit prefix matching what you did: `feat` (new feature), `fix` (bug fix), `docs` (documentation only), `refactor` (no behavior change), `chore` (tooling/config), `style` (formatting only), `test` (tests only).
   - `<short description>` is a lowercase imperative phrase summarizing the change (e.g. `add dark mode toggle`).
-  - Example: `feat: add dark mode toggle (#42) [skip ci]`
-- Add `[skip ci]` to your commit message to avoid triggering CI pipelines.
+  - Example: `feat: add dark mode toggle (#42)`
+- **Do NOT add `[skip ci]`.** Your commit must run the `check` job (shellcheck, shfmt, bats). Nothing in the loop is triggered by a push — every loop job requires a pipeline trigger, so a plain commit cannot start another iteration.

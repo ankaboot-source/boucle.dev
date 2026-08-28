@@ -1196,26 +1196,20 @@ const description = hero.data.metaDescription;
       }
 
       /* ============ STRIKE-THROUGH ANIMATION (Why boucle pain points) ============
-         A repeating-linear-gradient background draws a 2px violet line at the
-         vertical center of each 1.6em line-height tile, so every wrapped line
-         of text gets its own strike line (works on any number of lines). The
-         reveal is animated by transitioning the background width from 0 to
-         100%, preserving the left-to-right 1.4s ease-in-out scroll-reveal. */
+         text-decoration: line-through strikes exactly the glyphs on each line,
+         so the strike never overshoots past the last word on a wrapped line
+         (unlike a block background, which covers the full box width). The
+         reveal is animated by fading text-decoration-color from transparent to
+         violet over 1.4s ease-in-out — the closest visually-perceptible
+         alternative to the previous background-size sweep. */
       .pain-text {
-        background-image: linear-gradient(
-          to bottom,
-          transparent 0,
-          transparent calc(50% - 1px),
-          var(--accent-violet) calc(50% - 1px),
-          var(--accent-violet) calc(50% + 1px),
-          transparent calc(50% + 1px)
-        );
-        background-size: 0 1.6em;
-        background-repeat: repeat-y;
-        transition: background-size 1.4s ease-in-out;
+        text-decoration: line-through;
+        text-decoration-thickness: 2px;
+        text-decoration-color: transparent;
+        transition: text-decoration-color 1.4s ease-in-out;
       }
       .pain-text.strike {
-        background-size: 100% 1.6em;
+        text-decoration-color: var(--accent-violet);
       }
 
       /* ============ WHY BOUCLE SUBTITLE (gold positioning text) ============ */
