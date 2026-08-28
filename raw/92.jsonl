@@ -35,3 +35,4 @@
 {"timestamp":"2026-08-28T05:40:10Z","role":"worker","iteration":1,"exit_code":0,"prompt_chars":22936,"tokens":"n/a","cost_usd":"n/a","model":"deepseek-v4-flash:0731","provider":"boucle","skills":[],"arm":"full","setup_fail":"","swarm_spawns":0}
 {"timestamp":"2026-08-28T05:40:11Z","role":"worker","outcome":"committed","detail":"iteration 1"}
 {"timestamp":"2026-08-28T05:45:16Z","role":"reviewer","iteration":1,"exit_code":0,"prompt_chars":43185,"tokens":"n/a","cost_usd":"n/a","model":"deepseek-v4-flash:0731","provider":"boucle","skills":[],"arm":"full","setup_fail":"","swarm_spawns":0}
+{"timestamp":"2026-08-28T05:45:18Z","role":"reviewer","outcome":"FAIL","detail":"iteration 1"}
