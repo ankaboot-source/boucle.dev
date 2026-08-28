@@ -30,3 +30,6 @@ npm-debug.log*
 
 # editor
 .idea/.wrangler/
+
+# boucle runtime prompt overlay (written by bin/jc, never tracked)
+.jcode/prompt-overlay.md
