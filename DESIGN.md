@@ -261,7 +261,7 @@ reinforce the afrofuturist identity without overwhelming the layout:
   gold border and a `$` prompt prefix (gold, `--font-mono`) signaling "this is a
   command you run". Text is `--text-primary` for WCAG AA contrast on the raised
   surface.
-- A Copy button to the right of the snippet: gold text + border on `--bg-secondary`,
+- A Copy button below the snippet: gold text + border on `--bg-secondary`,
   with an inline clipboard icon (14px, stroke-based, `currentColor`) to the left of
   the label, so the copy action reads as the block's CTA at a glance. On success it
   switches to a green checkmark state ("Copied!") and reverts after 2 seconds.
