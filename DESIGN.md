@@ -36,7 +36,6 @@ visually as "belongs in your forge" while the accents stay afrofuturist.
 | `--accent` | `#f5c842` | Boucle d'or gold — primary accent (CTA, highlights, logo, afro, créoles, visor) |
 | `--accent-gold-dim` | `#c9a233` | Hover/active state for gold |
 | `--accent-violet` | `#7b2ff7` | Afro-futurist violet (secondary accent — gradients, glow, motif bands) |
-| `--accent-cyan` | `#00e5ff` | Futuristic cyan (tertiary accent — links, tech details, motif bands) |
 | `--text-primary` | `#f0f0f5` | Off-white (body text) |
 | `--text-secondary` | `#a0a0b8` | Muted text (descriptions, meta) |
 | `--text-gold` | `#f5c842` | Gold text (emphasis, logo) |
@@ -158,11 +157,11 @@ Subtle African-inspired geometric motifs (kente, adinkra, Sahelian patterns)
 reinforce the afrofuturist identity without overwhelming the layout:
 
 - **Kente/adinkra band** — a thin horizontal repeating band of gold / violet /
-  cyan stripes (a `repeating-linear-gradient`), used at the base of the hero.
+  gold-dim stripes (a `repeating-linear-gradient`), used at the base of the hero.
   Low opacity (≈0.35), edge-faded with a mask, `aria-hidden`, no motion.
 - **Usage rules** — motifs are decorative only, never interactive, never
   animated, and always `aria-hidden`. They use the existing accent tokens
-  (gold leads, violet/cyan support) and stay subtle (low opacity, small
+  (gold leads, violet supports) and stay subtle (low opacity, small
   footprint). They must not reduce text contrast or readability.
 - **Reduced motion** — motifs carry no animation, so `prefers-reduced-motion`
   is naturally satisfied.
@@ -258,7 +257,14 @@ reinforce the afrofuturist identity without overwhelming the layout:
 ### Quick start
 
 - Minimal: a single `curl -fsSL https://boucle.dev/install.sh | bash` oneliner.
-- Code snippet in `--font-mono` on `--surface-raised` background.
+- Code snippet in `--font-mono` on `--surface-raised` background, with a subtle
+  gold border and a `$` prompt prefix (gold, `--font-mono`) signaling "this is a
+  command you run". Text is `--text-primary` for WCAG AA contrast on the raised
+  surface.
+- A Copy button below the snippet: gold text + border on `--bg-secondary`,
+  with an inline clipboard icon (14px, stroke-based, `currentColor`) to the left of
+  the label, so the copy action reads as the block's CTA at a glance. On success it
+  switches to a green checkmark state ("Copied!") and reverts after 2 seconds.
 - Below the oneliner, a visually distinct transition panel (gold border +
   `--bg-secondary` background + gold glow) instructing "Create an issue in
   your forge and tag it `boucle:triage`" — marking the shift from setup
@@ -296,6 +302,6 @@ reinforce the afrofuturist identity without overwhelming the layout:
 ## 7. Visual foundations
 
 - Dark theme only — no light variant. `--surface-base` is the base, `--accent` drives attention.
-- Single-accent discipline: gold leads (CTA, logo, highlights), violet/cyan support only.
+- Single-accent discipline: gold leads (CTA, logo, highlights), violet supports only.
 - Forge corner radius (`6px`) on all primary surfaces; the only `50%` is the hero glow blobs.
 - Layout follows the "Spacing & layout" grid; visual density is generous (whitespace ≥ 1.5rem between blocks).
