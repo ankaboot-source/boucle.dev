@@ -17,6 +17,6 @@
   "author": "ankaboot",
   "license": "AGPL-3.0",
   "dependencies": {
-    "astro": "^7.2.1"
+    "astro": "^7.2.8"
   }
 }
