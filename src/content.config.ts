@@ -109,6 +109,29 @@ const cards = defineCollection({
   }),
 });
 
+// Loop states section header: title, subtitle, and aria-label.
+const loopStatesHeader = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/loop-states-header' }),
+  schema: z.object({
+    title: z.string(),
+    sub: z.string(),
+    ariaLabel: z.string(),
+  }),
+});
+
+// The label state machine: one entry per state. `type` drives the visual
+// treatment (autonomous = cyan, human = gold, terminal = muted exit).
+const loopStates = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/loop-states' }),
+  schema: z.object({
+    order: z.number().int().positive(),
+    label: z.string(),
+    description: z.string(),
+    type: z.enum(['autonomous', 'human', 'terminal']),
+    typeLabel: z.string(),
+  }),
+});
+
 // Quick start section: toggle, install/prompt code, transition, docs link.
 const quickStart = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/quick-start' }),
@@ -160,6 +183,8 @@ export const collections = {
   steps,
   whyBoucle,
   cards,
+  loopStatesHeader,
+  loopStates,
   quickStart,
   footer,
 };
