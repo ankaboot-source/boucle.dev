@@ -1,1 +1,2 @@
 {"timestamp":"2026-10-17T09:51:49Z","role":"e2e","iteration":1,"exit_code":0,"prompt_chars":717,"tokens":"2272215","cost_usd":"n/a","model":"glm-5.3-flash","provider":"boucle","skills":["verification-before-completion"],"skills_evidence":"parsed","arm":"full","setup_fail":"toolchain","swarm_spawns":0,"lessons":[],"lessons_source":"unbuilt"}
+{"timestamp":"2026-10-17T09:51:52Z","role":"e2e","outcome":"FAIL","detail":""}
